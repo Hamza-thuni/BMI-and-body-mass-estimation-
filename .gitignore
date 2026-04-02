@@ -1,0 +1,66 @@
+# --- Python & Environment ---
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+
+# --- Datasets & Data Files ---
+Dataset/
+datasets/
+data/
+data (1)/
+content/
+*.csv
+*.xlsx
+*.sql
+
+# --- Feature Files (large) ---
+features/
+features_v2/
+features_v4/
+features_v7/
+features.zip
+*.npy
+*.npz
+
+# --- ML Model Weights & Large Binaries ---
+*.h5
+*.pth
+*.weights
+*.tflite
+*.joblib
+*.pkl
+*.pt
+models/
+models_v2/
+models_v4/
+models_v6/
+models_v7/
+
+# --- Images & Media ---
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+*.mp4
+*.avi
+*.mov
+*.webp
+
+# --- JSON outputs (large result files) ---
+*.json
+
+# --- Misc Large Files ---
+*.zip
+pip_install.txt
+pip_list.txt
+
+# --- OS & IDE ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
