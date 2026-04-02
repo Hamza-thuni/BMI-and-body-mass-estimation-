@@ -56,18 +56,36 @@ _PREPROCESS = transforms.Compose([
 def _parse_bmi(fname: str) -> float:
     """
     Parse BMI from 2DImage2BMI filename convention.
-    Format: {id}_{gender}_{?}_{height_cm*1000}_{weight_kg*1000}...
+    Format: {id}_{gender}_{age}_{height_mm}_{weight_g}[_suffix].ext
+
+    Heights are stored in mm  (e.g. 177800 → 1.778 m).
+    Weights are stored in g   (e.g. 8300740 → 83.007 kg = 83007.40 g,
+                               but the dataset uses g*10 -> divide by 100_000).
+
+    IMPORTANT: filenames often have a " (1)" copy-suffix appended to part[4],
+    e.g. "8300740 (1)".  We use re.search to grab only the FIRST digit run so
+    the trailing '1' is never concatenated into the weight value.
     """
     name  = fname.split(".")[0]
     parts = name.split("_")
     try:
-        h_raw = int("".join(filter(str.isdigit, parts[3])))
-        w_raw = int("".join(filter(str.isdigit, parts[4])))
+        m3 = re.search(r'\d+', parts[3])
+        m4 = re.search(r'\d+', parts[4])
+        if m3 is None or m4 is None:
+            raise ValueError("digit group not found")
+        h_raw = int(m3.group())
+        w_raw = int(m4.group())
     except (IndexError, ValueError):
         raise ValueError(f"Cannot parse BMI from filename: {fname!r}")
-    h_m  = h_raw / 100_000.0
-    w_kg = w_raw / 100_000.0
-    return w_kg / (h_m ** 2 + 1e-8)
+    h_m  = h_raw / 100_000.0   # mm → m  (177800 → 1.778 m)
+    w_kg = w_raw / 100_000.0   # g*10 → kg (8300740 → 83.007 kg)
+    bmi  = w_kg / (h_m ** 2 + 1e-8)
+    if not (10.0 < bmi < 80.0):
+        raise ValueError(
+            f"Implausible BMI {bmi:.1f} for {fname!r} "
+            f"(h={h_m:.3f} m, w={w_kg:.1f} kg)"
+        )
+    return bmi
 
 
 # ---------------------------------------------------------------------------

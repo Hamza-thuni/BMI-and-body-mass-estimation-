@@ -1,0 +1,6 @@
+train: N=9250, valid=9163, bad=87, min=10.49, max=78.61, mean_valid=30.12
+  BMI histogram (5-unit bins): {10: 72, 15: 324, 20: 2259, 25: 2813, 30: 1597, 35: 915, 40: 608, 45: 315, 50: 188, 55: 72}
+val: N=579, valid=1, bad=578, min=36.49, max=722.23, mean_valid=36.49
+  BMI histogram (5-unit bins): {35: 1}
+test: N=1230, valid=2, bad=1228, min=30.99, max=784.73, mean_valid=31.26
+  BMI histogram (5-unit bins): {30: 2}

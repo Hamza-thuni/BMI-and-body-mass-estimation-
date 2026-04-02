@@ -1,0 +1,3 @@
+train: total=9250, valid=9163, bad=87, range=[10.5-60.0], mean=30.12
+val: total=579, valid=572, bad=7, range=[12.4-57.2], mean=30.14
+test: total=1230, valid=1223, bad=7, range=[12.6-59.9], mean=29.94

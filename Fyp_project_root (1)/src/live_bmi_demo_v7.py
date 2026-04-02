@@ -103,21 +103,27 @@ def bmi_label(bmi: float):
 # ---------------------------------------------------------------------------
 
 def _ensemble_predict(feat: np.ndarray) -> float:
-    """Run ensemble or single-model prediction."""
+    """Run ensemble or single-model prediction, clamped to plausible BMI range."""
     ftype = BUNDLE.get("feature_type", "v6_fallback")
 
     if ftype == "v6_fallback":
-        Xs = BUNDLE["scaler"].transform(feat.reshape(1, -1))
-        return float(BUNDLE["model"].predict(Xs)[0])
+        Xs  = BUNDLE["scaler"].transform(feat.reshape(1, -1))
+        raw = float(BUNDLE["model"].predict(Xs)[0])
+    else:
+        # V7 ensemble path
+        Xs = BUNDLE["pca"].transform(
+             BUNDLE["scaler"].transform(feat.reshape(1, -1)))
+        preds = [BUNDLE["krr"].predict(Xs)[0],
+                 BUNDLE["svr"].predict(Xs)[0]]
+        if BUNDLE.get("has_xgb") and "xgb" in BUNDLE:
+            preds.append(BUNDLE["xgb"].predict(Xs)[0])
+        raw = float(np.mean(preds))
 
-    # V7 ensemble path
-    Xs = BUNDLE["pca"].transform(
-         BUNDLE["scaler"].transform(feat.reshape(1, -1)))
-    preds = [BUNDLE["krr"].predict(Xs)[0],
-             BUNDLE["svr"].predict(Xs)[0]]
-    if BUNDLE.get("has_xgb") and "xgb" in BUNDLE:
-        preds.append(BUNDLE["xgb"].predict(Xs)[0])
-    return float(np.mean(preds))
+    # Safety clamp — real BMI is always in [10, 60]
+    clamped = float(np.clip(raw, 10.0, 60.0))
+    if abs(raw - clamped) > 0.5:
+        print(f"[BMI clamp] raw={raw:.1f} → clamped={clamped:.1f}")
+    return clamped
 
 
 def _build_feature(deep_feat, coords):

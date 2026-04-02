@@ -46,9 +46,22 @@ except ImportError:
 
 def load_split(split: str, feat_dir: str):
     path = os.path.join(feat_dir, f"{split}_v7.npz")
-    data = np.load(path)
-    X = np.concatenate([data["deep"], data["pose"]], axis=1)
-    return X, data["bmi"]
+    data = np.load(path, allow_pickle=True)
+    X    = np.concatenate([data["deep"], data["pose"]], axis=1)
+    y    = data["bmi"].astype(np.float32)
+
+    # ── Sanity guard: reject samples with implausible BMI ────────────────────
+    # Human BMI can't be below 10 or above 60 in any real dataset.
+    # Corrupted filenames sometimes produce 200-450 values; drop them here.
+    mask = (y > 10.0) & (y < 60.0)
+    n_bad = int((~mask).sum())
+    if n_bad:
+        print(f"  [WARN] {split}: dropped {n_bad} samples with implausible BMI "
+              f"(min raw={y.min():.1f}, max raw={y.max():.1f})")
+    X, y = X[mask], y[mask]
+    print(f"  {split}: {len(y)} samples  BMI [{y.min():.1f}, {y.max():.1f}]  "
+          f"mean={y.mean():.2f}")
+    return X, y
 
 
 def report(name: str, preds: np.ndarray, y: np.ndarray):
