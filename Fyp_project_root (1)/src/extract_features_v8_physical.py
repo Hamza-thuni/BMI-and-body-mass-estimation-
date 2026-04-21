@@ -4,7 +4,10 @@ extract_features_v8_physical.py
 V8: The Physics Model.
 
 Extracts Absolute PHYSICAL dimensions (Area, Widths, Height).
-Updated to use MediaPipe Tasks API natively.
+Uses MediaPipe Tasks API with robust image pre-processing.
+
+Key fix: All images are resized to a uniform dimension before passing
+to MediaPipe to avoid the ChannelSize crash on Windows.
 """
 
 import os
@@ -51,46 +54,101 @@ def parse_truth(fname: str):
     return h_m, w_kg
 
 
+def safe_read_rgb(img_path: str, target_size: int = 640) -> np.ndarray | None:
+    """
+    Read an image and return a 3-channel RGB uint8 contiguous array.
+    Resizes to (target_size x target_size) keeping aspect ratio via padding
+    to avoid MediaPipe Tasks API crashes on variable-sized images.
+    
+    Returns (rgb_padded, scale_info) or (None, None).
+    scale_info = (orig_h, orig_w, pad_top, pad_left, scale)
+    """
+    bgr = cv2.imread(img_path, cv2.IMREAD_COLOR)
+    if bgr is None:
+        return None, None
+
+    orig_h, orig_w = bgr.shape[:2]
+
+    # Scale to fit within target_size
+    scale = target_size / max(orig_h, orig_w)
+    new_w = int(orig_w * scale)
+    new_h = int(orig_h * scale)
+    bgr_resized = cv2.resize(bgr, (new_w, new_h), interpolation=cv2.INTER_AREA)
+
+    # Pad to square
+    pad_top = (target_size - new_h) // 2
+    pad_left = (target_size - new_w) // 2
+    canvas = np.zeros((target_size, target_size, 3), dtype=np.uint8)
+    canvas[pad_top:pad_top+new_h, pad_left:pad_left+new_w] = bgr_resized
+
+    rgb = cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB)
+    rgb = np.ascontiguousarray(rgb, dtype=np.uint8)
+
+    return rgb, (orig_h, orig_w, pad_top, pad_left, scale)
+
+
 def process_image(img_path: str, true_h_m: float, landmarker):
-    bgr = cv2.imread(img_path)
-    if bgr is None: return None
-    
-    rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
+    rgb, scale_info = safe_read_rgb(img_path, target_size=640)
+    if rgb is None:
+        return None
+
+    orig_h, orig_w, pad_top, pad_left, scale = scale_info
+    img_size = rgb.shape[0]  # 640
+
     mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
-    
-    res = landmarker.detect(mp_image)
+
+    try:
+        res = landmarker.detect(mp_image)
+    except Exception:
+        return None
+
     if not res.pose_landmarks or not res.segmentation_masks:
         return None
-        
-    h, w = bgr.shape[:2]
+
+    # Landmarks are in normalized [0, 1] coordinates of the 640x640 padded image
     landmarks = res.pose_landmarks[0]
-    pts = np.array([[lm.x * w, lm.y * h] for lm in landmarks], dtype=np.float32)
-    
-    min_y = pts[:, 1].min()
-    max_y = pts[:, 1].max()
+    pts_padded = np.array(
+        [[lm.x * img_size, lm.y * img_size] for lm in landmarks],
+        dtype=np.float32
+    )
+
+    # Convert padded coordinates back to original image coordinates
+    pts_orig = np.zeros_like(pts_padded)
+    pts_orig[:, 0] = (pts_padded[:, 0] - pad_left) / scale
+    pts_orig[:, 1] = (pts_padded[:, 1] - pad_top) / scale
+
+    # Pixel height in original image coordinates
+    min_y = pts_orig[:, 1].min()
+    max_y = pts_orig[:, 1].max()
     pixel_height = max_y - min_y
-    if pixel_height < 50: return None
-    
+    if pixel_height < 50:
+        return None
+
     px_per_m = pixel_height / true_h_m
     px2_per_m2 = px_per_m ** 2
-    
+
+    # Segmentation mask area (in padded image coords, then convert)
     mask = res.segmentation_masks[0].numpy_view()
-    mask_pixels = np.sum(mask > 0.5)
-    area_m2 = mask_pixels / px2_per_m2
-    
+    # Count mask pixels in padded image, then convert to original scale
+    mask_pixels_padded = np.sum(mask > 0.5)
+    # Each padded pixel = (1/scale)^2 original pixels
+    mask_pixels_orig = mask_pixels_padded / (scale ** 2)
+    area_m2 = mask_pixels_orig / (px_per_m ** 2)
+
     L_SH, R_SH = 11, 12
     L_HIP, R_HIP = 23, 24
-    
-    sh_w_px = np.linalg.norm(pts[L_SH] - pts[R_SH])
-    hip_w_px = np.linalg.norm(pts[L_HIP] - pts[R_HIP])
-    mid_sh = (pts[L_SH] + pts[R_SH]) / 2.0
-    mid_hip = (pts[L_HIP] + pts[R_HIP]) / 2.0
+
+    # Use original-scale coordinates for physical dimensions
+    sh_w_px = np.linalg.norm(pts_orig[L_SH] - pts_orig[R_SH])
+    hip_w_px = np.linalg.norm(pts_orig[L_HIP] - pts_orig[R_HIP])
+    mid_sh = (pts_orig[L_SH] + pts_orig[R_SH]) / 2.0
+    mid_hip = (pts_orig[L_HIP] + pts_orig[R_HIP]) / 2.0
     torso_l_px = np.linalg.norm(mid_sh - mid_hip)
-    
+
     sh_w_m    = sh_w_px / px_per_m
     hip_w_m   = hip_w_px / px_per_m
     torso_l_m = torso_l_px / px_per_m
-    
+
     return np.array([area_m2, sh_w_m, hip_w_m, torso_l_m, true_h_m], dtype=np.float32)
 
 
@@ -108,8 +166,12 @@ def extract_split(split_name: str, img_dir: str, landmarker):
             continue
 
         path = os.path.join(img_dir, fname)
-        feats = process_image(path, h_m, landmarker)
-        
+        try:
+            feats = process_image(path, h_m, landmarker)
+        except Exception as e:
+            skipped += 1
+            continue
+
         if feats is not None:
             X_phys.append(feats)
             Y_weight.append(w_kg)
@@ -117,7 +179,7 @@ def extract_split(split_name: str, img_dir: str, landmarker):
         else:
             skipped += 1
 
-    print(f"  → {len(names)} samples valid, {skipped} skipped.")
+    print(f"  -> {len(names)} samples valid, {skipped} skipped.")
     return (
         np.array(X_phys, dtype=np.float32),
         np.array(Y_weight, dtype=np.float32),
@@ -129,9 +191,9 @@ if __name__ == "__main__":
     base_data = str(dataset_2dimage_dir())
     out_dir   = str(features_dir("v8"))
     os.makedirs(out_dir, exist_ok=True)
-    
+
     model_path = get_task_model()
-    
+
     # Configure MediaPipe Tasks
     BaseOptions = mp.tasks.BaseOptions
     PoseLandmarker = mp.tasks.vision.PoseLandmarker
@@ -166,4 +228,4 @@ if __name__ == "__main__":
             else:
                 print(f"  [Error] No valid features extracted for {split}.")
 
-    print("\n✅ V8 extraction complete.")
+    print("\nV8 extraction complete.")

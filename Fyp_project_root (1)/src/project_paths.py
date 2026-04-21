@@ -41,7 +41,7 @@ def dataset_2dimage_dir() -> Path:
 
 def features_dir(which: str = "v1") -> Path:
     root = project_root()
-    names = {"v1": "features", "v2": "features_v2", "v4": "features_v4", "v7": "features_v7", "v8": "features_v8"}
+    names = {"v1": "features", "v2": "features_v2", "v4": "features_v4", "v7": "features_v7", "v8": "features_v8", "v9": "features_v9"}
     key = which.lower()
     if key not in names:
         raise ValueError(f"features_dir: expected one of {list(names)}, got {which!r}")
@@ -50,7 +50,7 @@ def features_dir(which: str = "v1") -> Path:
 
 def models_dir(which: str = "v1") -> Path:
     root = project_root()
-    names = {"v1": "models", "v2": "models_v2", "v4": "models_v4", "v6": "models_v6", "v7": "models_v7", "v8": "models_v8"}
+    names = {"v1": "models", "v2": "models_v2", "v4": "models_v4", "v6": "models_v6", "v7": "models_v7", "v8": "models_v8", "v9": "models_v9"}
     key = which.lower()
     if key not in names:
         raise ValueError(f"models_dir: expected one of {list(names)}, got {which!r}")
