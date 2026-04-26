@@ -1,0 +1,269 @@
+======================================================================
+V7 PIPELINE DIAGNOSTIC
+======================================================================
+
+[1] Feature files location: D:\Fyp_project_root\Fyp_project_root (1)\features_v7
+
+  train:
+    Samples: 9250
+    BMI  range: [10.49, 78.61]  mean=30.48  std=8.92
+    Deep shape: (9250, 1536)
+    Pose shape: (9250, 24)
+    WARNING: 87 SUSPICIOUS BMI values outside [10,60]
+      first few: [78.47313  78.47313  78.47313  78.47313  65.478386 65.478386 65.478386
+ 65.478386 65.89718  65.89718 ]
+    BMI distribution:
+      [10-15): 72 (0.8%)
+      [15-18): 141 (1.5%)
+      [18-20): 183 (2.0%)
+      [20-22): 588 (6.4%)
+      [22-25): 1671 (18.1%)
+      [25-27): 1300 (14.1%)
+      [27-30): 1513 (16.4%)
+      [30-35): 1597 (17.3%)
+      [35-40): 915 (9.9%)
+      [40-50): 923 (10.0%)
+      [50-60): 260 (2.8%)
+      [60-100): 87 (0.9%)
+    Pose all-zeros rows: 0
+    Pose NaN count: 0
+    Deep NaN count: 0
+    Deep all-zeros rows: 0
+    Sample filenames & BMIs:
+      [0] 000002_F_18_165100_8482178 (1).jpg -> BMI=31.12
+      [1321] 000415_F_29_162560_6577090 (1).jpg -> BMI=24.89
+      [2642] 000817_F_27_152400_6758526 (1).png -> BMI=29.10
+      [3963] 001160_F_21_172720_9117207 (1).jpg -> BMI=30.56
+      [5285] 001653_F_25_172720_7620352 (1).jpg -> BMI=25.54
+      [6606] 002164_M_30_187960_8391459 (1).jpg -> BMI=23.75
+      [7927] 0_M_27_167640_18143696 (1).jpg -> BMI=64.56
+      [9249] 4_M_25_182880_7257478 (1).jpg -> BMI=21.70
+
+  val:
+    Samples: 579
+    BMI  range: [12.40, 72.22]  mean=30.56  std=8.53
+    Deep shape: (579, 1536)
+    Pose shape: (579, 24)
+    WARNING: 7 SUSPICIOUS BMI values outside [10,60]
+      first few: [68.226875 61.123264 65.439445 61.627724 62.035557 63.18003  72.22276 ]
+    BMI distribution:
+      [10-15): 1 (0.2%)
+      [15-18): 6 (1.0%)
+      [18-20): 9 (1.6%)
+      [20-22): 39 (6.7%)
+      [22-25): 112 (19.3%)
+      [25-27): 66 (11.4%)
+      [27-30): 96 (16.6%)
+      [30-35): 114 (19.7%)
+      [35-40): 61 (10.5%)
+python : Traceback (most 
+recent call last):
+At line:1 char:1
++ python 
+diagnose_v7_simple.py 2>&1 
+| Out-File -FilePath 
+"../diag_outpu ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~
+    + CategoryInfo         
+     : NotSpecified: (Tra  
+  ceback (most recent ca   
+ ll last)::String) [],     
+RemoteException
+    + FullyQualifiedErrorI 
+   d : NativeCommandError
+ 
+      [40-50): 53 (9.2%)
+      [50-60): 15 (2.6%)
+      [60-100): 7 (1.2%)
+    Pose all-zeros rows: 0
+    Pose NaN count: 0
+    Deep NaN count: 0
+    Deep all-zeros rows: 0
+    Sample filenames & BMIs:
+      [0] 000004_F_22_157480_5606402 (1).jpg -> BMI=22.61
+      [82] 000391_F_31_167640_6577090 (1).jpg -> BMI=23.40
+      [165] 000772_F_32_160020_6123497 (1).jpg -> BMI=23.91
+      [247] 001129_M_32_167640_6803886 (1).jpg -> BMI=24.21
+      [330] 001552_F_23_160020_6441012 (1).jpg -> BMI=25.15
+      [412] 002126_M_29_185420_16782919 (1).jpg -> BMI=48.82
+      [495] 0_M_41_175260_8618256 (1).jpg -> BMI=28.06
+      [578] 4_M_27_193040_18688007 (1).jpg -> BMI=50.15
+
+  test:
+    Samples: 1230
+    BMI  range: [12.55, 78.47]  mean=30.14  std=8.30
+    Deep shape: (1230, 1536)
+    Pose shape: (1230, 24)
+    WARNING: 7 SUSPICIOUS BMI values outside [10,60]
+      first few: [64.39963  68.62524  60.689064 62.40263  78.47313  60.174274 66.00246 ]
+    BMI distribution:
+      [10-15): 4 (0.3%)
+      [15-18): 9 (0.7%)
+      [18-20): 27 (2.2%)
+      [20-22): 95 (7.7%)
+      [22-25): 229 (18.6%)
+      [25-27): 159 (12.9%)
+      [27-30): 193 (15.7%)
+      [30-35): 259 (21.1%)
+      [35-40): 113 (9.2%)
+      [40-50): 101 (8.2%)
+      [50-60): 34 (2.8%)
+      [60-100): 7 (0.6%)
+    Pose all-zeros rows: 0
+    Pose NaN count: 0
+    Deep NaN count: 0
+    Deep all-zeros rows: 0
+    Sample filenames & BMIs:
+      [0] 000006_F_19_177800_8300740 (1).jpg -> BMI=26.26
+      [175] 000427_M_30_167640_8708974 (1).jpg -> BMI=30.99
+      [351] 000791_F_21_165100_7393555 (1).jpg -> BMI=27.12
+  File "D:\Fyp_project_root
+\Fyp_project_root (1)\src\d
+iagnose_v7_simple.py", 
+line 160, in <module>
+    b = 
+joblib.load(str(path))
+      [526] 001159_F_25_165100_9117207 (1).jpg -> BMI=33.45
+      [702] 001668_F_26_154940_5715264 (1).jpg -> BMI=23.81
+      [877] 002190_M_18_190500_8391459 (1).jpg -> BMI=23.12
+      [1053] 0_M_23_193040_7484274 (1).jpg -> BMI=20.08
+      [1229] 5_F_22_157480_7711071 (1).jpg -> BMI=31.09
+
+======================================================================
+[2] Dataset filename analysis
+  Dataset dir: D:\Fyp_project_root\Fyp_project_root (1)\data (1)\2DImage2BMI-main (1)\2DImage2BMI-main (1)\datasets (1)
+
+  Split: Image_train (1)
+    Image count: 2349
+    Parse errors: 0
+    Height range: [1.270, 2.007] m  mean=1.706
+    Weight range: [29.5, 254.0] kg  mean=88.9
+    BMI    range: [10.5, 78.6]  mean=30.5
+    Sample filenames:
+      000002_F_18_165100_8482178 (1).jpg
+        -> h=1.651 m, w=84.8 kg, BMI=31.1
+      000003_F_18_170180_3991613 (1).jpg
+        -> h=1.702 m, w=39.9 kg, BMI=13.8
+      000003_F_18_170180_7257478 (1).jpg
+        -> h=1.702 m, w=72.6 kg, BMI=25.1
+      000004_F_22_157480_6245967 (1).jpg
+        -> h=1.575 m, w=62.5 kg, BMI=25.2
+      000005_F_18_170180_12246995 (1).jpg
+        -> h=1.702 m, w=122.5 kg, BMI=42.3
+
+  Split: Image_val (1)
+        
+^^^^^^^^^^^^^^^^^^^^^^
+    Image count: 586
+    Parse errors: 0
+    Height range: [1.270, 1.981] m  mean=1.701
+    Weight range: [31.8, 217.7] kg  mean=89.1
+  File "C:\Users\fatim\AppD
+ata\Local\Programs\Python\P
+ython312\Lib\site-packages\
+joblib\numpy_pickle.py", 
+line 749, in load
+    BMI    range: [12.4, 72.2]  mean=30.5
+    Sample filenames:
+      000004_F_22_157480_5606402 (1).jpg
+        -> h=1.575 m, w=56.1 kg, BMI=22.6
+      000008_F_19_165100_6486371 (1).jpg
+        -> h=1.651 m, w=64.9 kg, BMI=23.8
+      000011_F_19_167640_7257478 (1).jpg
+        -> h=1.676 m, w=72.6 kg, BMI=25.8
+      000011_F_19_167640_9071848 (1).jpg
+        -> h=1.676 m, w=90.7 kg, BMI=32.3
+      000012_F_19_168910_7847149 (1).jpg
+        -> h=1.689 m, w=78.5 kg, BMI=27.5
+
+  Split: Image_test (1)
+    Image count: 1254
+    Parse errors: 0
+    Height range: [1.372, 2.007] m  mean=1.705
+    Weight range: [38.6, 229.5] kg  mean=88.1
+    BMI    range: [12.6, 78.5]  mean=30.2
+    Sample filenames:
+      000006_F_19_177800_8300740 (1).jpg
+        -> h=1.778 m, w=83.0 kg, BMI=26.3
+      000007_F_27_157480_7302838 (1).png
+        -> h=1.575 m, w=73.0 kg, BMI=29.4
+      000012_F_19_168910_9525440 (1).jpg
+        -> h=1.689 m, w=95.3 kg, BMI=33.4
+      000016_F_20_154940_6939964 (1).jpg
+        -> h=1.549 m, w=69.4 kg, BMI=28.9
+      000020_F_20_172720_9752237 (1).jpg
+        -> h=1.727 m, w=97.5 kg, BMI=32.7
+
+======================================================================
+[3] Weight distribution in dataset
+
+  Image_train (1): 2349 images
+    Weight range: [29.5, 254.0] kg
+    Weight mean:  88.9 kg
+    Weight median: 81.6 kg
+    Weight distribution:
+      [30-40) kg: 7 (0.3%)
+      [40-50) kg: 31 (1.3%)
+      [50-60) kg: 159 (6.8%)
+      [60-70) kg: 384 (16.3%)
+      [70-80) kg: 529 (22.5%)
+      [80-90) kg: 371 (15.8%)
+      [90-100) kg: 273 (11.6%)
+      [100-110) kg: 168 (7.2%)
+    obj = _unpickle(
+          ^^^^^^^^^^
+      [110-120) kg: 125 (5.3%)
+      [120-130) kg: 86 (3.7%)
+      [130-150) kg: 123 (5.2%)
+      [150-200) kg: 77 (3.3%)
+
+  Image_val (1): 586 images
+    Weight range: [31.8, 217.7] kg
+    Weight mean:  89.1 kg
+    Weight median: 81.6 kg
+    Weight distribution:
+  File "C:\Users\fatim\AppD
+ata\Local\Programs\Python\P
+ython312\Lib\site-packages\
+joblib\numpy_pickle.py", 
+line 626, in _unpickle
+    obj = unpickler.load()
+          ^^^^^^^^^^^^^^^^
+  File "C:\Users\fatim\AppD
+ata\Local\Programs\Python\P
+ython312\Lib\pickle.py", 
+line 1205, in load
+      [30-40) kg: 1 (0.2%)
+      [40-50) kg: 10 (1.7%)
+      [50-60) kg: 45 (7.7%)
+      [60-70) kg: 98 (16.7%)
+      [70-80) kg: 124 (21.2%)
+      [80-90) kg: 81 (13.8%)
+      [90-100) kg: 63 (10.8%)
+      [100-110) kg: 59 (10.1%)
+      [110-120) kg: 32 (5.5%)
+      [120-130) kg: 24 (4.1%)
+      [130-150) kg: 23 (3.9%)
+      [150-200) kg: 21 (3.6%)
+
+======================================================================
+[4] Model inspection
+    dispatch[key[0]](self)
+  File "C:\Users\fatim\AppD
+ata\Local\Programs\Python\P
+ython312\Lib\pickle.py", 
+line 1530, in 
+load_stack_global
+    self.append(self.find_c
+lass(module, name))
+                ^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^
+  File "C:\Users\fatim\AppD
+ata\Local\Programs\Python\P
+ython312\Lib\pickle.py", 
+line 1572, in find_class
+    __import__(module, 
+level=0)
+ModuleNotFoundError: No 
+module named 'xgboost'

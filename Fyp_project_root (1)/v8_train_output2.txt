@@ -1,0 +1,41 @@
+﻿=== V8 Physical Model Training (Improved) ===
+
+  train: 2343 samples  weight [29.5, 254.0] mean=88.9 median=81.6
+  val: 582 samples  weight [31.8, 217.7] mean=89.2 median=81.6
+  test: 1248 samples  weight [38.6, 229.5] mean=88.2 median=81.6
+
+  Feature names: [area_m2, sh_w_m, hip_w_m, torso_l_m, height_m]
+  Train: (2343, 5)  Val: (582, 5)  Test: (1248, 5)
+
+  Sample weights: min=0.35 max=7.42 mean=1.00
+  After polynomial features: 20 features
+
+[1/2] Tuning Ridge ...
+  Best Ridge: alpha=50.0 val MAE=19.03 kg
+
+[2/2] Tuning XGBoost ...
+  Best XGB: {'n_estimators': 500, 'learning_rate': 0.1, 'max_depth': 6} val MAE=16.60 kg
+
+=== Final Training on Train+Val ===
+
+=== Test Set Results ===
+  Ridge                | MAE=19.50 kg | RMSE=25.03 kg | MAPE=23.8%
+  XGBoost              | MAE=16.01 kg | RMSE=21.72 kg | MAPE=18.3%
+  Ensemble             | MAE=16.41 kg | RMSE=21.64 kg | MAPE=19.5%
+
+  Per-bucket analysis:
+    [ 20- 50) kg: n= 17 | true=46.3 pred=67.3 delta=+21.0 MAE=21.7
+    [ 50- 60) kg: n=102 | true=56.2 pred=72.9 delta=+16.7 MAE=18.3
+    [ 60- 70) kg: n=187 | true=65.3 pred=79.1 delta=+13.8 MAE=15.2
+    [ 70- 80) kg: n=278 | true=75.0 pred=83.8 delta=+8.8 MAE=13.7
+    [ 80- 90) kg: n=216 | true=84.7 pred=91.9 delta=+7.3 MAE=13.2
+    [ 90-100) kg: n=144 | true=95.0 pred=100.0 delta=+5.0 MAE=15.8
+    [100-120) kg: n=149 | true=108.8 pred=104.7 delta=-4.1 MAE=16.8
+    [120-300) kg: n=155 | true=143.7 pred=124.9 delta=-18.8 MAE=25.5
+
+=== 5-Fold CV (honest estimate) ===
+  5-Fold CV MAE (Ridge): 16.16 +/- 0.57 kg
+
+Saved -> D:\Fyp_project_root\Fyp_project_root (1)\models_v8\ensemble_v8_physical.joblib
+
+Done!

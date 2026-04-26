@@ -1,0 +1,47 @@
+[3] Model inspection
+  keys: ['scaler', 'pca', 'krr', 'svr', 'has_xgb', 'feature_type', 'xgb']
+  feature_type: hybrid_v7
+  has_xgb: True
+  Scaler n_features: 1560
+  PCA n_components: 256
+  PCA total explained var: 0.7856
+
+[4] Model predictions on TRAINING features
+  Filtered training samples: 9163
+  XGB pred: [10.6, 60.0] mean=30.1
+  True BMI:  [10.5, 60.0] mean=30.1 std=8.2
+  Ens pred:  [12.2, 59.4] mean=30.1 std=7.3
+  KRR pred:  [11.5, 60.1] mean=30.1
+  SVR pred:  [12.1, 59.4] mean=30.0
+  Train MAE: 0.90
+  True BMI std: 8.16
+  Pred BMI std: 7.31
+  Ratio pred_std/true_std: 0.896
+  Pearson r: 0.9862
+
+  Prediction by true BMI bucket:
+    True [10-18.5): n=213, true_mean=15.7, pred_mean=18.4, delta=2.7
+    True [18.5-22): n=771, true_mean=20.7, pred_mean=21.6, delta=0.9
+    True [22-25): n=1671, true_mean=23.6, pred_mean=24.2, delta=0.6
+    True [25-30): n=2813, true_mean=27.3, pred_mean=27.5, delta=0.2
+    True [30-35): n=1597, true_mean=32.3, pred_mean=32.1, delta=-0.2
+    True [35-40): n=915, true_mean=37.4, pred_mean=36.7, delta=-0.7
+    True [40-60): n=1183, true_mean=46.2, pred_mean=44.2, delta=-1.9
+
+[5] Model predictions on TEST features
+  Test samples: 1223
+  True BMI:  [12.6, 59.9] mean=29.9 std=7.9
+  Ens pred:  [14.8, 44.5] mean=29.9 std=4.1
+  Test MAE: 4.85
+  Pearson r: 0.5597
+
+  Test predictions by true BMI bucket:
+    True [10-18.5): n=13, true_mean=15.8, pred_mean=26.2, delta=10.4
+    True [18.5-22): n=122, true_mean=20.7, pred_mean=26.9, delta=6.2
+    True [22-25): n=229, true_mean=23.6, pred_mean=27.7, delta=4.1
+    True [25-30): n=352, true_mean=27.3, pred_mean=29.2, delta=1.8
+    True [30-35): n=259, true_mean=32.2, pred_mean=31.0, delta=-1.2
+    True [35-40): n=113, true_mean=37.5, pred_mean=32.6, delta=-4.8
+    True [40-60): n=135, true_mean=46.6, pred_mean=34.3, delta=-12.3
+
+[6] Live demo weight estimation check

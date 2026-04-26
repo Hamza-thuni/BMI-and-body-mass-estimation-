@@ -1,0 +1,54 @@
+﻿======================================================================
+V7 PIPELINE DIAGNOSTIC
+======================================================================
+
+[1] Feature files location: D:\Fyp_project_root\Fyp_project_root (1)\features_v7
+
+  train:
+    Samples: 9250
+    BMI  range: [10.49, 78.61]  mean=30.48  std=8.92
+    Deep shape: (9250, 1536)
+    Pose shape: (9250, 24)
+python : Traceback (most 
+recent call last):
+At line:1 char:1
++ python diagnose_v7.py 
+2>&1 | Out-File -FilePath 
+"../diag_output.txt"  ...
++ 
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo         
+     : NotSpecified    : 
+(Traceback (most     
+recent call last)::    
+String) [], RemoteE    
+xception
+    + FullyQualifiedErr    
+orId : NativeComman    
+dError
+ 
+  File "D:\Fyp_project_root
+\Fyp_project_root 
+(1)\src\diagnose_v7.py", 
+line 38, in <module>
+    print(f"    
+\u26a0\ufe0f  
+{len(suspicious)} 
+SUSPICIOUS BMI values 
+outside [10,60]: 
+{suspicious[:10]}")
+  File "C:\Users\fatim\AppD
+ata\Local\Programs\Python\P
+ython312\Lib\encodings\cp12
+52.py", line 19, in encode
+    return codecs.charmap_e
+ncode(input,self.errors,enc
+oding_table)[0]
+           ^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^
+UnicodeEncodeError: 
+'charmap' codec can't 
+encode characters in 
+position 4-5: character 
+maps to <undefined>

@@ -1,0 +1,44 @@
+﻿=== V8 Hybrid Model Training (Physics + Deep + Pose) ===
+
+[INFO] V7 deep+pose features found. Using HYBRID mode (1565-D).
+
+Loading V8 physical features ...
+Loading V7 deep+pose features ...
+
+Merging features by filename ...
+    Matched 2337/2343 samples (V8 has 2343, V7 has 9250)
+    Matched 577/582 samples (V8 has 582, V7 has 579)
+    Matched 1227/1248 samples (V8 has 1248, V7 has 1230)
+
+  Train: (2337, 1565)  Val: (577, 1565)  Test: (1227, 1565)
+  Feature dims: 1565
+  Train weight: [29.5, 254.0] mean=88.9 median=81.6
+  Sample weights: min=0.35 max=7.41
+  After PCA(128): explained var = 0.680
+
+[1/2] Tuning Ridge ...
+  Best Ridge: alpha=100.0 val MAE=18.95 kg
+
+[2/2] Tuning XGBoost ...
+  Best XGB: {'n_estimators': 500, 'learning_rate': 0.02, 'max_depth': 6} val MAE=16.94 kg
+
+=== Final Training on Train+Val ===
+
+=== Test Set Results ===
+  Ridge                | MAE=19.76 kg | RMSE=25.55 kg | MAPE=24.3%
+  XGBoost              | MAE=16.32 kg | RMSE=21.53 kg | MAPE=19.3%
+  Ensemble             | MAE=16.57 kg | RMSE=21.49 kg | MAPE=20.1%
+
+  Per-bucket analysis:
+    [ 20- 50) kg: n= 17 | true=46.3 pred=75.1 delta=+28.8 MAE=29.1
+    [ 50- 60) kg: n=101 | true=56.2 pred=73.4 delta=+17.2 MAE=18.4
+    [ 60- 70) kg: n=182 | true=65.4 pred=78.8 delta=+13.4 MAE=16.7
+    [ 70- 80) kg: n=277 | true=75.0 pred=84.6 delta=+9.6 MAE=14.3
+    [ 80- 90) kg: n=211 | true=84.7 pred=93.2 delta=+8.5 MAE=14.7
+    [ 90-100) kg: n=142 | true=94.9 pred=97.7 delta=+2.8 MAE=13.9
+    [100-120) kg: n=147 | true=108.8 pred=104.0 delta=-4.8 MAE=15.1
+    [120-300) kg: n=150 | true=143.1 pred=121.1 delta=-21.9 MAE=24.5
+
+Saved -> D:\Fyp_project_root\Fyp_project_root (1)\models_v8\ensemble_v8_physical.joblib
+
+Done!

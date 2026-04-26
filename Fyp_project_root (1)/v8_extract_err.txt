@@ -1,0 +1,118 @@
+﻿python : INFO: Created 
+TensorFlow Lite XNNPACK 
+delegate for CPU.
+At line:1 char:1
++ python extract_features_v
+8_physical.py 2>&1 | 
+Out-File -FilePath "../ ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
+    + CategoryInfo         
+     : NotSpecified: (INF  
+  O: Created T...legate    
+ for CPU.:String) [], R    
+emoteException
+    + FullyQualifiedErrorI 
+   d : NativeCommandError
+ 
+W0000 
+00:00:1775498368.114774    
+2084 inference_feedback_man
+ager.cc:121] Feedback 
+manager requires a model 
+with a single signature 
+inference. Disabling 
+support for feedback 
+tensors.
+W0000 
+00:00:1775498368.221654    
+5960 inference_feedback_man
+ager.cc:121] Feedback 
+manager requires a model 
+with a single signature 
+inference. Disabling 
+support for feedback 
+tensors.
+
+Extracting Physical Dimensions for train (2349 images) ...
+
+train:   0%|          | 
+0/2349 [00:00<?, 
+?it/s]W0000 
+00:00:1775498368.472355    
+8396 landmark_projection_ca
+lculator.cc:81] Using 
+NORM_RECT without 
+IMAGE_DIMENSIONS is only 
+supported for the square 
+ROI. Provide 
+IMAGE_DIMENSIONS or use 
+PROJECTION_MATRIX.
+
+train:   0%|          | 
+1/2349 [00:00<10:06,  
+3.87it/s]F0000 
+00:00:1775498368.761607   
+13148 image_frame.cc:415] 
+Check failed: 1 == 
+ChannelSize() (1 vs. 4) 
+*** Check failure stack 
+trace: ***
+    @   00007FFF19B18977  
+(unknown)
+    @   00007FFF199638E5  
+(unknown)
+    @   00007FFF18F006A1  
+(unknown)
+    @   00007FFF18EFEADE  
+(unknown)
+    @   00007FFF18EFE9C6  
+(unknown)
+    @   00007FFF63DC4771  
+(unknown)
+    @   00007FFF63DC4493  
+(unknown)
+    @   00007FFF63DC42C2  
+(unknown)
+    @   00007FFF63CC3D45  
+(unknown)
+    @   00007FFF63CC2D03  
+(unknown)
+    @   00007FFF63CC28F8  
+(unknown)
+    @   00007FFF236172AA  
+(unknown)
+    @   00007FFF23616755  
+(unknown)
+    @   00007FFF23618615  
+(unknown)
+    @   00007FFF236EB3DE  
+(unknown)
+    @   00007FFF236EB2B1  
+(unknown)
+    @   00007FFF236EB0F8  
+(unknown)
+    @   00007FFF236EB1D0  
+(unknown)
+    @   00007FFF23602D50  
+(unknown)
+    @   00007FFF236031B6  
+(unknown)
+    @   00007FFF23709464  
+(unknown)
+    @   00007FFF23709CEE  
+(unknown)
+    @   00007FFF23709D93  
+(unknown)
+    @   00007FFF2370A9EA  
+(unknown)
+    @   00007FFF2370A865  
+(unknown)
+    @   00007FFF23709FFD  
+(unknown)
+    @   00007FF667B01230  
+(unknown)
+    @   00007FFF76B0E8D7  
+(unknown)
+    @   00007FFF7864C48C  
+(unknown)

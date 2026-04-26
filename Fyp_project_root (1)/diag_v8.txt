@@ -1,0 +1,7 @@
+V8 PHYSICAL FEATURES DIAGNOSTIC
+============================================================
+train: NOT FOUND at d:\Fyp_project_root\Fyp_project_root (1)\features_v8\train_v8_phys.npz
+val: NOT FOUND at d:\Fyp_project_root\Fyp_project_root (1)\features_v8\val_v8_phys.npz
+test: NOT FOUND at d:\Fyp_project_root\Fyp_project_root (1)\features_v8\test_v8_phys.npz
+
+V8 model NOT FOUND
