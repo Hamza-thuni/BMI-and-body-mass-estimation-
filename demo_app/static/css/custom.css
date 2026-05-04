@@ -1,0 +1,333 @@
+/* ======================================================
+   BMI Kiosk — Design System & Custom Styles
+   Premium dark charcoal theme with soft teal accents
+   ====================================================== */
+
+/* ── Color Variables ─────────────────────────────── */
+:root {
+    --bg-primary: #13151a;
+    --bg-card: #1b1e25;
+    --bg-card-inner: #161920;
+    --bg-input: #111318;
+    --border-subtle: rgba(255, 255, 255, 0.06);
+    --border-card: rgba(255, 255, 255, 0.08);
+    --border-active: rgba(94, 234, 212, 0.2);
+
+    --accent-teal: #5eead4;
+    --accent-teal-mid: #2dd4bf;
+    --accent-teal-dim: rgba(94, 234, 212, 0.12);
+    --accent-teal-glow: rgba(94, 234, 212, 0.06);
+
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #4b5563;
+
+    --green-neon: #34d399;
+    --green-neon-glow: rgba(52, 211, 153, 0.5);
+}
+
+/* ── Base ─────────────────────────────────────────── */
+body {
+    background-color: var(--bg-primary) !important;
+    font-family: 'Public Sans', system-ui, sans-serif !important;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ── Glass Card ──────────────────────────────────── */
+.glass-card {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-card) !important;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+/* ── Card Glow — very subtle halo ────────────────── */
+.card-glow {
+    box-shadow:
+        0 0 0 1px rgba(94, 234, 212, 0.04),
+        0 0 40px -10px rgba(94, 234, 212, 0.07),
+        0 8px 32px -8px rgba(0, 0, 0, 0.4);
+}
+
+/* ── Stat Value Animations ───────────────────────── */
+.stat-value {
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-block;
+}
+.stat-value.updating {
+    opacity: 0.4;
+    transform: scale(0.95);
+    color: var(--accent-teal);
+}
+
+/* ── Metric Box ──────────────────────────────────── */
+.metric-box {
+    background: var(--bg-card-inner) !important;
+    border: 1px solid var(--border-subtle) !important;
+    transition: border-color 0.4s ease, box-shadow 0.4s ease;
+}
+.metric-box:hover {
+    border-color: var(--border-active) !important;
+}
+
+/* ── Status Badge ────────────────────────────────── */
+#status-badge {
+    font-family: 'Public Sans', system-ui, sans-serif;
+}
+#status-badge.state-ready {
+    background-color: rgba(19, 21, 26, 0.9) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    color: var(--text-secondary);
+}
+#status-badge.state-ready .status-dot {
+    background-color: var(--green-neon) !important;
+    box-shadow: 0 0 6px var(--green-neon-glow), 0 0 16px var(--green-neon-glow);
+    animation: pulse-glow 2.5s ease-in-out infinite;
+}
+#status-badge.state-scanning {
+    background-color: rgba(94, 234, 212, 0.06) !important;
+    border: 1px solid rgba(94, 234, 212, 0.25) !important;
+    color: var(--accent-teal);
+}
+#status-badge.state-scanning .status-dot {
+    background-color: var(--accent-teal) !important;
+    animation: pulse-glow 0.8s ease-in-out infinite;
+}
+#status-badge.state-complete {
+    background-color: rgba(52, 211, 153, 0.06) !important;
+    border: 1px solid rgba(52, 211, 153, 0.25) !important;
+    color: #34d399;
+}
+#status-badge.state-complete .status-dot {
+    background-color: #34d399 !important;
+    box-shadow: 0 0 6px rgba(52, 211, 153, 0.5);
+}
+
+@keyframes pulse-glow {
+    0%, 100% {
+        opacity: 1;
+        box-shadow: 0 0 4px var(--green-neon-glow), 0 0 10px var(--green-neon-glow);
+    }
+    50% {
+        opacity: 0.55;
+        box-shadow: 0 0 8px var(--green-neon-glow), 0 0 22px var(--green-neon-glow);
+    }
+}
+
+/* ── Corner Brackets ─────────────────────────────── */
+.corner-bracket {
+    transition: all 0.4s ease;
+}
+.scanning .corner-bracket {
+    border-color: var(--accent-teal) !important;
+    box-shadow: 0 0 10px rgba(94, 234, 212, 0.6);
+    animation: corner-pulse 1s infinite alternate;
+}
+.complete .corner-bracket {
+    border-color: #34d399 !important;
+    box-shadow: 0 0 12px rgba(52, 211, 153, 0.4);
+}
+@keyframes corner-pulse {
+    0% { transform: scale(1); opacity: 0.7; }
+    100% { transform: scale(1.05); opacity: 1; }
+}
+
+/* ── Scan Laser ──────────────────────────────────── */
+#scan-laser { top: 10%; }
+.scanning #scan-laser {
+    display: block;
+    animation: scan-sweep 1.5s ease-in-out infinite alternate;
+}
+@keyframes scan-sweep {
+    0%   { top: 10%; opacity: 0.4; }
+    50%  { opacity: 1; }
+    100% { top: 90%; opacity: 0.4; }
+}
+
+/* ── Table Row Animation ─────────────────────────── */
+@keyframes row-insert {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+        background-color: rgba(94, 234, 212, 0.05);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+        background-color: transparent;
+    }
+}
+.new-row { animation: row-insert 0.7s ease-out forwards; }
+
+/* ═══════════════════════════════════════════════════
+   SKELETON OVERLAY — Subtle, not overpowering
+   ═══════════════════════════════════════════════════ */
+#skeleton-overlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 5;
+    opacity: 0.55;
+}
+.skeleton-bone {
+    stroke: rgba(94, 234, 212, 0.5);
+    stroke-width: 1.8;
+    stroke-linecap: round;
+}
+.skeleton-joint {
+    fill: rgba(94, 234, 212, 0.6);
+}
+.skeleton-joint-major {
+    fill: rgba(255, 255, 255, 0.85);
+    animation: joint-pulse 2.5s ease-in-out infinite;
+}
+@keyframes joint-pulse {
+    0%, 100% { opacity: 0.85; }
+    50%      { opacity: 0.5; }
+}
+.skeleton-bbox {
+    fill: none;
+    stroke: rgba(94, 234, 212, 0.2);
+    stroke-width: 1;
+    stroke-dasharray: 5 4;
+    rx: 4;
+}
+
+/* ═══════════════════════════════════════════════════
+   SVG GAUGE — Clean, elegant semicircle
+   ═══════════════════════════════════════════════════ */
+.gauge-wrapper {
+    position: relative;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+}
+.gauge-wrapper svg {
+    display: block;
+    overflow: visible;
+}
+.gauge-center-text {
+    text-align: center;
+    margin-top: -4px;
+}
+.gauge-center-text .gauge-val {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.1;
+}
+.gauge-center-text .gauge-cat {
+    font-size: 0.6rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+/* ═══════════════════════════════════════════════════
+   PRIMARY BUTTON
+   ═══════════════════════════════════════════════════ */
+.btn-primary {
+    background: linear-gradient(135deg, #14b8a6 0%, var(--accent-teal-mid) 100%);
+    color: var(--bg-primary);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    border: none;
+    box-shadow:
+        0 0 24px rgba(94, 234, 212, 0.2),
+        0 4px 14px rgba(0, 0, 0, 0.35);
+    transition: all 0.25s ease;
+    cursor: pointer;
+}
+.btn-primary:hover {
+    box-shadow:
+        0 0 32px rgba(94, 234, 212, 0.3),
+        0 6px 18px rgba(0, 0, 0, 0.35);
+    transform: translateY(-1px);
+}
+.btn-primary:active {
+    transform: scale(0.98);
+}
+.btn-primary:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* ═══════════════════════════════════════════════════
+   SEX TOGGLE
+   ═══════════════════════════════════════════════════ */
+.sex-toggle {
+    background-color: var(--bg-input) !important;
+    border-color: var(--border-subtle) !important;
+    border-radius: 12px !important;
+    overflow: hidden;
+}
+.sex-toggle button {
+    min-height: 48px;
+    font-weight: 500;
+    transition: all 0.25s ease;
+    border: none !important;
+    outline: none !important;
+}
+.sex-toggle button.active {
+    background: var(--accent-teal-dim) !important;
+    color: var(--accent-teal) !important;
+}
+.sex-toggle button:not(.active) {
+    background: transparent !important;
+    color: var(--text-muted) !important;
+}
+.sex-toggle button:not(.active):hover {
+    color: var(--text-secondary) !important;
+}
+
+/* ── Input ───────────────────────────────────────── */
+input[type="number"] {
+    background: var(--bg-input) !important;
+    border: 1px solid var(--border-subtle) !important;
+    color: var(--text-primary) !important;
+    border-radius: 12px !important;
+}
+input[type="number"]:focus {
+    border-color: rgba(94, 234, 212, 0.3) !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(94, 234, 212, 0.08) !important;
+}
+
+/* ── Section Titles ──────────────────────────────── */
+.section-title {
+    font-size: 0.7rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+}
+
+/* ── Metric Unit Text ────────────────────────────── */
+.metric-unit {
+    font-size: 10px;
+    font-weight: 300;
+    color: var(--text-muted);
+}
+
+/* ── Scrollbar ───────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+
+/* ── Utility ─────────────────────────────────────── */
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
