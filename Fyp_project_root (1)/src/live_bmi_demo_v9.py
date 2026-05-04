@@ -132,18 +132,38 @@ def load_v9_model():
 
 
 # ---------------------------------------------------------------------------
+# ArUco Marker Detection
+# ---------------------------------------------------------------------------
+def detect_aruco(frame):
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+    if hasattr(cv2.aruco, "ArucoDetector"):
+        detector = cv2.aruco.ArucoDetector(aruco_dict, cv2.aruco.DetectorParameters())
+        corners, ids, _ = detector.detectMarkers(gray)
+    else:
+        corners, ids, _ = cv2.aruco.detectMarkers(gray, aruco_dict, parameters=cv2.aruco.DetectorParameters_create())
+    return corners, ids
+
+
+# ---------------------------------------------------------------------------
 # Physics feature extraction (from image + landmarks + height)
 # ---------------------------------------------------------------------------
-def extract_physics(image, landmarker_result, true_h_m):
+def extract_physics(image, landmarker_result, px_per_m):
     """
     Computes absolute physical dimensions (Area, Widths) from pixel data.
-    Returns: (phys_feats_5D, pts_coords, seg_mask) or (None, None, None)
+    Returns: (phys_feats_5D, coords, seg_mask, is_cut_off) or (None, None, None, False)
     """
     if not landmarker_result.pose_landmarks or not landmarker_result.segmentation_masks:
-        return None, None, None
+        return None, None, None, False
 
     h, w = image.shape[:2]
     landmarks = landmarker_result.pose_landmarks[0]
+    
+    # Check edges
+    min_y_norm = min(lm.y for lm in landmarks)
+    max_y_norm = max(lm.y for lm in landmarks)
+    is_cut_off = (min_y_norm < 0.01 or max_y_norm > 0.99)
+
     pts = np.array([[lm.x * w, lm.y * h] for lm in landmarks], dtype=np.float32)
 
     L_SH, R_SH = 11, 12
@@ -155,15 +175,15 @@ def extract_physics(image, landmarker_result, true_h_m):
     mid_hip = (pts[L_HIP] + pts[R_HIP]) / 2.0
     torso_l_px = np.linalg.norm(mid_sh - mid_hip)
 
-    if torso_l_px < 20:
-        return None, None, None
+    # Restore original robust pixel_height computation (domain shift fix)
+    min_y = pts[:, 1].min()
+    max_y = pts[:, 1].max()
+    pixel_height = max_y - min_y
 
-    # Robust pixel-per-meter estimation via Torso length 
-    # (Torso is ~31.5% of full height on average). 
-    # This totally eliminates the +30kg error when feet/head are missing from camera!
-    pixel_height = torso_l_px / 0.315
+    if pixel_height < 50:
+        return None, None, None, is_cut_off
 
-    px_per_m = pixel_height / true_h_m
+    true_h_m = pixel_height / px_per_m
     px2_per_m2 = px_per_m ** 2
 
     mask = landmarker_result.segmentation_masks[0].numpy_view()
@@ -179,7 +199,7 @@ def extract_physics(image, landmarker_result, true_h_m):
     # Also return coordinates (with z=0) for pose feature extraction
     coords = np.column_stack([pts, np.zeros(len(pts))])
 
-    return phys, coords, mask
+    return phys, coords, mask, is_cut_off
 
 
 # ---------------------------------------------------------------------------
@@ -216,20 +236,10 @@ def main():
     print(" V9 Hybrid Live Demo (Physics + Deep + Pose)")
     print("=" * 50)
 
-    # 1. Height input
-    print("\n[CALIBRATION] Manual height input for pixel-to-meter conversion.")
-    while True:
-        try:
-            val = input("Enter your exact height in CENTIMETERS (e.g. 175): ")
-            h_meters = float(val) / 100.0
-            if 1.0 < h_meters < 2.5:
-                break
-            else:
-                print("Height must be between 100 and 250 cm.")
-        except ValueError:
-            print("Invalid input. Please enter a number.")
-
-    print(f"\n  Height locked to {h_meters:.2f} m.")
+    # 1. Automated Height Scale
+    print("\n[CALIBRATION] Using ArUco markers (ID 0 & ID 1) for automated scale.")
+    last_px_per_m = None
+    last_h_meters = 0.0
 
     # 2. Load model & setup
     bundle = load_v9_model()
@@ -269,6 +279,25 @@ def main():
         display = frame.copy()
         h_frame, w_frame = frame.shape[:2]
 
+        # 1. Detect ArUco Scale
+        corners, ids = detect_aruco(frame)
+        if ids is not None and 0 in ids and 1 in ids:
+            idx0 = np.where(ids == 0)[0][0]
+            idx1 = np.where(ids == 1)[0][0]
+            c0 = corners[idx0][0].mean(axis=0)
+            c1 = corners[idx1][0].mean(axis=0)
+            pixel_dist = np.linalg.norm(c0 - c1)
+            last_px_per_m = pixel_dist / 1.0  # Markers are 1m apart
+            
+            # Draw scale line
+            cv2.line(display, (int(c0[0]), int(c0[1])), (int(c1[0]), int(c1[1])), (255, 0, 255), 2)
+            cv2.putText(display, "Scale Locked", (10, h_frame - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 255), 2)
+        else:
+            if last_px_per_m is None:
+                cv2.putText(display, "Waiting for ArUco Markers (0 & 1)...", (10, h_frame - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+            else:
+                cv2.putText(display, "Using Last Known Scale", (10, h_frame - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
+
         # Ensure 3-channel contiguous
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         rgb = np.ascontiguousarray(rgb, dtype=np.uint8)
@@ -279,7 +308,7 @@ def main():
         except Exception:
             res = None
 
-        if res and res.pose_landmarks:
+        if last_px_per_m is not None and res and res.pose_landmarks:
             # Draw landmarks
             landmarks = res.pose_landmarks[0]
             for lm in landmarks:
@@ -287,7 +316,7 @@ def main():
                 cv2.circle(display, (cx, cy), 3, (0, 255, 0), -1)
 
             # Extract physics
-            phys_feats, coords, seg_mask = extract_physics(frame, res, h_meters)
+            phys_feats, coords, seg_mask, is_cut_off = extract_physics(frame, res, last_px_per_m)
 
             if phys_feats is not None and bundle:
                 try:
@@ -326,10 +355,13 @@ def main():
                 except Exception as exc:
                     print(f"[prediction error] {exc}")
 
+            if phys_feats is not None:
+                last_h_meters = phys_feats[4]
+
             if weight_hist:
                 smooth_w = float(np.mean(weight_hist))
                 inst_w = float(weight_hist[-1])
-                bmi = smooth_w / (h_meters ** 2)
+                bmi = smooth_w / (last_h_meters ** 2) if last_h_meters > 0 else 0
 
                 # Draw HUD
                 cv2.rectangle(display, (10, 10), (370, 160), (20, 20, 40), -1)
@@ -337,7 +369,7 @@ def main():
                 cv2.putText(display, label, (20, 35),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 200, 255), 2)
 
-                cv2.putText(display, f"Height: {h_meters:.2f} m", (20, 65),
+                cv2.putText(display, f"Height: {last_h_meters:.2f} m", (20, 65),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.55, (150, 150, 150), 1)
 
                 cv2.putText(display, f"Weight: {smooth_w:.1f} kg", (20, 95),
@@ -359,12 +391,18 @@ def main():
                     cat, col = "Obese", (30, 30, 220)
                 cv2.putText(display, cat, (20, 155),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, col, 2)
+                            
+                # Warning if cut off
+                if is_cut_off:
+                    cv2.putText(display, "WARNING: Move back! Body cut off", (w_frame // 2 - 150, 50),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
             else:
                 cv2.putText(display, "Analyzing body...", (20, 50),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 200, 255), 2)
         else:
-            cv2.putText(display, "No person detected - stand back", (20, 50),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+            if last_px_per_m is not None:
+                cv2.putText(display, "No person detected - stand back", (20, 50),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 
         cv2.imshow("V9 Weight & BMI Estimation", display)
         if cv2.waitKey(1) & 0xFF == ord('q'):

@@ -71,14 +71,34 @@ def create_pose_landmarker():
 
 
 # ---------------------------------------------------------------------------
-# Physics feature extraction (torso-ratio method — robust to partial body)
+# ArUco Marker Detection
 # ---------------------------------------------------------------------------
-def extract_physics(image, landmarker_result, true_h_m):
+def detect_aruco(frame):
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+    if hasattr(cv2.aruco, "ArucoDetector"):
+        detector = cv2.aruco.ArucoDetector(aruco_dict, cv2.aruco.DetectorParameters())
+        corners, ids, _ = detector.detectMarkers(gray)
+    else:
+        corners, ids, _ = cv2.aruco.detectMarkers(gray, aruco_dict, parameters=cv2.aruco.DetectorParameters_create())
+    return corners, ids
+
+
+# ---------------------------------------------------------------------------
+# Physics feature extraction (from image + landmarks + height)
+# ---------------------------------------------------------------------------
+def extract_physics(image, landmarker_result, px_per_m):
     if not landmarker_result.pose_landmarks or not landmarker_result.segmentation_masks:
-        return None
+        return None, False
 
     h, w = image.shape[:2]
     landmarks = landmarker_result.pose_landmarks[0]
+
+    # Check edges
+    min_y_norm = min(lm.y for lm in landmarks)
+    max_y_norm = max(lm.y for lm in landmarks)
+    is_cut_off = (min_y_norm < 0.01 or max_y_norm > 0.99)
+
     pts = np.array([[lm.x * w, lm.y * h] for lm in landmarks], dtype=np.float32)
 
     L_SH, R_SH = 11, 12
@@ -90,12 +110,15 @@ def extract_physics(image, landmarker_result, true_h_m):
     mid_hip  = (pts[L_HIP] + pts[R_HIP]) / 2.0
     torso_l_px = np.linalg.norm(mid_sh - mid_hip)
 
-    if torso_l_px < 20:
-        return None
+    # Restore original robust pixel_height computation (domain shift fix)
+    min_y = pts[:, 1].min()
+    max_y = pts[:, 1].max()
+    pixel_height = max_y - min_y
 
-    # Torso-ratio scaling (robust to feet/head being cut off)
-    pixel_height = torso_l_px / 0.315
-    px_per_m     = pixel_height / true_h_m
+    if pixel_height < 50:
+        return None, is_cut_off
+
+    true_h_m     = pixel_height / px_per_m
     px2_per_m2   = px_per_m ** 2
 
     mask = landmarker_result.segmentation_masks[0].numpy_view()
@@ -105,7 +128,7 @@ def extract_physics(image, landmarker_result, true_h_m):
     hip_w_m  = hip_w_px  / px_per_m
     torso_l_m = torso_l_px / px_per_m
 
-    return np.array([area_m2, sh_w_m, hip_w_m, torso_l_m, true_h_m], dtype=np.float32)
+    return np.array([area_m2, sh_w_m, hip_w_m, torso_l_m, true_h_m], dtype=np.float32), is_cut_off
 
 
 # ---------------------------------------------------------------------------
@@ -136,20 +159,10 @@ def main():
     print(" V9 Physics Demo — Raspberry Pi 4")
     print("=" * 50)
 
-    # Height input
-    print("\n[CALIBRATION] Enter your height.")
-    while True:
-        try:
-            val = input("Enter height in CENTIMETERS (e.g. 175): ")
-            h_meters = float(val) / 100.0
-            if 1.0 < h_meters < 2.5:
-                break
-            else:
-                print("Must be between 100 and 250 cm.")
-        except ValueError:
-            print("Invalid input.")
-
-    print(f"\n  Height locked to {h_meters:.2f} m.")
+    # Automated Height Scale
+    print("\n[CALIBRATION] Using ArUco markers (ID 0 & ID 1) for automated scale.")
+    last_px_per_m = None
+    last_h_meters = 0.0
 
     # Load model
     bundle = load_v9_model()
@@ -182,6 +195,25 @@ def main():
         display = frame.copy()
         h_frame, w_frame = frame.shape[:2]
 
+        # 1. Detect ArUco Scale
+        corners, ids = detect_aruco(frame)
+        if ids is not None and 0 in ids and 1 in ids:
+            idx0 = np.where(ids == 0)[0][0]
+            idx1 = np.where(ids == 1)[0][0]
+            c0 = corners[idx0][0].mean(axis=0)
+            c1 = corners[idx1][0].mean(axis=0)
+            pixel_dist = np.linalg.norm(c0 - c1)
+            last_px_per_m = pixel_dist / 1.0  # Markers are 1m apart
+            
+            # Draw scale line
+            cv2.line(display, (int(c0[0]), int(c0[1])), (int(c1[0]), int(c1[1])), (255, 0, 255), 2)
+            cv2.putText(display, "Scale Locked", (10, h_frame - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 255), 2)
+        else:
+            if last_px_per_m is None:
+                cv2.putText(display, "Waiting for ArUco Markers (0 & 1)...", (10, h_frame - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+            else:
+                cv2.putText(display, "Using Last Known Scale", (10, h_frame - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
+
         # MediaPipe expects RGB
         rgb_cont = np.ascontiguousarray(rgb_frame, dtype=np.uint8)
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_cont)
@@ -191,13 +223,13 @@ def main():
         except Exception:
             res = None
 
-        if res and res.pose_landmarks:
+        if last_px_per_m is not None and res and res.pose_landmarks:
             landmarks = res.pose_landmarks[0]
             for lm in landmarks:
                 cx, cy = int(lm.x * w_frame), int(lm.y * h_frame)
                 cv2.circle(display, (cx, cy), 3, (0, 255, 0), -1)
 
-            phys_feats = extract_physics(frame, res, h_meters)
+            phys_feats, is_cut_off = extract_physics(frame, res, last_px_per_m)
 
             if phys_feats is not None:
                 try:
@@ -205,16 +237,18 @@ def main():
                     weight_hist.append(pred_w)
                 except Exception as exc:
                     print(f"[prediction error] {exc}")
+                    
+                last_h_meters = phys_feats[4]
 
             if weight_hist:
                 smooth_w = float(np.mean(weight_hist))
-                bmi = smooth_w / (h_meters ** 2)
+                bmi = smooth_w / (last_h_meters ** 2) if last_h_meters > 0 else 0
 
                 # HUD
                 cv2.rectangle(display, (10, 10), (370, 165), (20, 20, 40), -1)
                 cv2.putText(display, "V9 Physics — Pi4", (20, 35),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.65, (200, 200, 255), 2)
-                cv2.putText(display, f"Height : {h_meters:.2f} m", (20, 65),
+                cv2.putText(display, f"Height : {last_h_meters:.2f} m", (20, 65),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.55, (150, 150, 150), 1)
                 cv2.putText(display, f"Weight : {smooth_w:.1f} kg", (20, 95),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.85, (0, 255, 0), 2)
@@ -232,12 +266,18 @@ def main():
 
                 cv2.putText(display, cat, (20, 160),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, col, 2)
+                            
+                # Warning if cut off
+                if is_cut_off:
+                    cv2.putText(display, "WARNING: Move back! Body cut off", (w_frame // 2 - 150, 50),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
             else:
                 cv2.putText(display, "Analyzing...", (20, 50),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 200, 255), 2)
         else:
-            cv2.putText(display, "No person — stand back", (20, 50),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+            if last_px_per_m is not None:
+                cv2.putText(display, "No person — stand back", (20, 50),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 
         cv2.imshow("V9 BMI — Pi4", display)
         if cv2.waitKey(1) & 0xFF == ord('q'):
