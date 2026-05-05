@@ -52,8 +52,9 @@ def generate_aruco_scale(
     marker_bottom_3ch = cv2.cvtColor(marker_bottom, cv2.COLOR_GRAY2BGR)
     marker_top_3ch = cv2.cvtColor(marker_top, cv2.COLOR_GRAY2BGR)
 
-    # Layout: markers on the left side, scale markings on the right
-    margin_left = 50
+    # Layout: Center the markers and scale markings
+    # The total width of markers + scale + text is roughly 460px.
+    margin_left = (img_width - 460) // 2
     scale_x = margin_left + marker_size_px + 60  # where scale line starts
     scale_x_end = scale_x + 80                    # where scale ticks end
 
@@ -145,7 +146,7 @@ def generate_aruco_scale(
     for line in reversed(instructions):
         color = (0, 0, 180) if "INSTRUCTIONS" in line else (60, 60, 60)
         thickness = 2 if "INSTRUCTIONS" in line else 1
-        cv2.putText(img, line, (50, y_inst),
+        cv2.putText(img, line, (margin_left - 20, y_inst),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, thickness)
         y_inst -= 35
 

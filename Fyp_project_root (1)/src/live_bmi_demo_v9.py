@@ -142,6 +142,13 @@ def detect_aruco(frame):
         corners, ids, _ = detector.detectMarkers(gray)
     else:
         corners, ids, _ = cv2.aruco.detectMarkers(gray, aruco_dict, parameters=cv2.aruco.DetectorParameters_create())
+        
+    # Sub-pixel corner refinement for maximum distance accuracy
+    if ids is not None and len(corners) > 0:
+        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.001)
+        for i in range(len(corners)):
+            cv2.cornerSubPix(gray, corners[i], (5, 5), (-1, -1), criteria)
+            
     return corners, ids
 
 
@@ -240,6 +247,7 @@ def main():
     print("\n[CALIBRATION] Using ArUco markers (ID 0 & ID 1) for automated scale.")
     last_px_per_m = None
     last_h_meters = 0.0
+    scale_hist = deque(maxlen=30)  # Smooth scale across 30 frames
 
     # 2. Load model & setup
     bundle = load_v9_model()
@@ -284,19 +292,56 @@ def main():
         if ids is not None and 0 in ids and 1 in ids:
             idx0 = np.where(ids == 0)[0][0]
             idx1 = np.where(ids == 1)[0][0]
-            c0 = corners[idx0][0].mean(axis=0)
-            c1 = corners[idx1][0].mean(axis=0)
-            pixel_dist = np.linalg.norm(c0 - c1)
-            last_px_per_m = pixel_dist / 1.0  # Markers are 1m apart
+            
+            c0_corners = corners[idx0][0]
+            c1_corners = corners[idx1][0]
+            center0 = c0_corners.mean(axis=0)
+            center1 = c1_corners.mean(axis=0)
+            
+            # --- 3D Pose Estimation ---
+            # Approximate camera matrix (focal length ~ image width)
+            focal_length = w_frame
+            cam_mat = np.array([
+                [focal_length, 0, w_frame / 2],
+                [0, focal_length, h_frame / 2],
+                [0, 0, 1]
+            ], dtype=np.float32)
+            dist_coeffs = np.zeros((4, 1), dtype=np.float32)
+            
+            # IMPORTANT: Physical printed size of the ArUco marker in meters!
+            # Change this if your printed marker is a different size.
+            MARKER_SIZE_M = 0.05  # Default: 5 cm (0.05 meters)
+            
+            obj_points = np.array([
+                [-MARKER_SIZE_M/2,  MARKER_SIZE_M/2, 0],
+                [ MARKER_SIZE_M/2,  MARKER_SIZE_M/2, 0],
+                [ MARKER_SIZE_M/2, -MARKER_SIZE_M/2, 0],
+                [-MARKER_SIZE_M/2, -MARKER_SIZE_M/2, 0]
+            ], dtype=np.float32)
+            
+            # Solve for 3D translation vectors
+            _, _, tvec0 = cv2.solvePnP(obj_points, c0_corners, cam_mat, dist_coeffs, flags=cv2.SOLVEPNP_IPPE_SQUARE)
+            _, _, tvec1 = cv2.solvePnP(obj_points, c1_corners, cam_mat, dist_coeffs, flags=cv2.SOLVEPNP_IPPE_SQUARE)
+            
+            # Z is the depth distance from the camera
+            z_depth = (tvec0[2][0] + tvec1[2][0]) / 2.0
+            
+            if z_depth > 0:
+                # px_per_m = focal_length / depth
+                inst_px_per_m = focal_length / z_depth
+                scale_hist.append(inst_px_per_m)
+            
+            if len(scale_hist) > 0:
+                last_px_per_m = float(np.mean(scale_hist))
             
             # Draw scale line
-            cv2.line(display, (int(c0[0]), int(c0[1])), (int(c1[0]), int(c1[1])), (255, 0, 255), 2)
-            cv2.putText(display, "Scale Locked", (10, h_frame - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 255), 2)
+            cv2.line(display, (int(center0[0]), int(center0[1])), (int(center1[0]), int(center1[1])), (255, 0, 255), 2)
+            cv2.putText(display, f"3D Scale Locked: {last_px_per_m:.1f} px/m", (10, h_frame - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 255), 2)
         else:
             if last_px_per_m is None:
                 cv2.putText(display, "Waiting for ArUco Markers (0 & 1)...", (10, h_frame - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
             else:
-                cv2.putText(display, "Using Last Known Scale", (10, h_frame - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
+                cv2.putText(display, f"Using Averaged 3D Scale: {last_px_per_m:.1f} px/m", (10, h_frame - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
 
         # Ensure 3-channel contiguous
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
