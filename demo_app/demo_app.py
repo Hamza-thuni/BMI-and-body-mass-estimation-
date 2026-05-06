@@ -38,51 +38,70 @@ def get_camera():
     return camera
 
 def gen_frames():
-    """Video streaming generator function."""
+    """Video streaming generator function with V9-style overlays."""
     import time
     import numpy as np
-    cam = get_camera()
+    import mediapipe as mp
+    import live_bmi_demo_v9 as v9
     
+    cam = get_camera()
     if not cam.isOpened():
         print("[Video Feed] Error: Camera could not be opened.")
     
     while True:
         success, frame = cam.read()
         if not success:
-            print("[Video Feed] Error: Failed to read frame from camera.")
-            # Create a blank red frame with error text
+            # ... (error handling remains same)
             frame = np.zeros((480, 640, 3), dtype=np.uint8)
             frame[:] = (0, 0, 150)
             cv2.putText(frame, "CAMERA ERROR", (150, 240), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 255), 3)
             ret, buffer = cv2.imencode('.jpg', frame)
-            frame_bytes = buffer.tobytes()
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+            yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
             time.sleep(1.0)
             continue
             
-        else:
-            # Save frame for inference
-            stream_state['latest_frame'] = frame.copy()
-            
-            # Continuously update the ArUco scale
-            scale_data = pipeline.calculate_scale(frame)
-            if scale_data is not None:
-                stream_state['global_scale'] = scale_data
-                
-            # Draw overlay
-            if stream_state['global_scale'] is not None:
-                px_per_m = stream_state['global_scale']
-                cv2.putText(frame, f"Scale: {px_per_m:.1f} px/m", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-            else:
-                cv2.putText(frame, "Waiting for ArUco (ID 0 & 1)...", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+        # Save raw frame for inference
+        stream_state['latest_frame'] = frame.copy()
+        display = frame.copy()
+        h_f, w_f = frame.shape[:2]
 
-            ret, buffer = cv2.imencode('.jpg', frame)
-            frame_bytes = buffer.tobytes()
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+        # 1. ArUco detection & drawing
+        corners, ids = v9.detect_aruco(frame)
+        if ids is not None:
+            ids_f = ids.flatten()
+            if 0 in ids_f and 1 in ids_f:
+                idx0 = np.where(ids_f == 0)[0][0]
+                idx1 = np.where(ids_f == 1)[0][0]
+                c0 = corners[idx0][0].mean(axis=0)
+                c1 = corners[idx1][0].mean(axis=0)
+                
+                # Draw pink scale line
+                cv2.line(display, (int(c0[0]), int(c0[1])), (int(c1[0]), int(c1[1])), (255, 0, 255), 2)
+                cv2.putText(display, "ID0 (80cm)", (int(c0[0]) + 10, int(c0[1])), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 255), 2)
+                cv2.putText(display, "ID1 (180cm)", (int(c1[0]) + 10, int(c1[1])), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 255), 2)
+
+                pixel_sep = abs(c1[1] - c0[1])
+                px_per_m = pixel_sep / 1.0 # MARKER_SEPARATION_M
+                stream_state['global_scale'] = px_per_m
+                cv2.putText(display, f"Scale: {px_per_m:.1f} px/m", (10, h_f - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 255), 2)
+
+        # 2. Pose detection & drawing
+        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        mp_img = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+        try:
+            res = pipeline.landmarker.detect(mp_img)
+            if res and res.pose_landmarks:
+                for lm in res.pose_landmarks[0]:
+                    cx, cy = int(lm.x * w_f), int(lm.y * h_f)
+                    cv2.circle(display, (cx, cy), 3, (0, 255, 0), -1)
+        except:
+            pass
+
+        ret, buffer = cv2.imencode('.jpg', display)
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
         
-        time.sleep(0.03)
+        time.sleep(0.01)
 
 @app.route('/')
 def index():

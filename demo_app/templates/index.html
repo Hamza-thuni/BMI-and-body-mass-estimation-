@@ -75,9 +75,6 @@
                 <!-- Live Feed -->
                 <img id="video-feed" src="{{ url_for('video_feed') }}" style="width:100%; height:100%; object-fit:cover; display:block; transition:opacity 0.3s;" alt="Live Video Feed">
                 
-                <!-- Focus Box -->
-                <div id="focus-box" style="position:absolute; inset:60px; border:1px solid rgba(94,234,212,0.15); border-radius:24px; pointer-events:none; z-index:10; transition:all 0.5s cubic-bezier(0.4, 0, 0.2, 1);"></div>
-                
                 <!-- Status Badge -->
                 <div style="position:absolute; top:16px; left:16px; z-index:20;">
                     <div id="status-badge" class="state-ready" style="padding:6px 14px; border-radius:20px; font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:0.08em; display:flex; align-items:center; gap:8px; background:var(--bg-card); border:1px solid var(--border-card); color:var(--text-secondary);">
