@@ -239,13 +239,16 @@ function setSex(sex) {
 // ═══════════════════════════════════════════════════
 
 function triggerScan() {
-    if (isScanning) return;
-    const parallaxFactor = document.getElementById('parallax-input').value;
-    socket.emit('trigger_scan', { 
-        age: parseInt(els.ageInput.value) || 25, 
-        sex: currentSex,
-        parallax_factor: parseFloat(parallaxFactor) || 1.0
-    });
+    if (isScanning) {
+        socket.emit('stop_scan');
+    } else {
+        const parallaxFactor = document.getElementById('parallax-input').value;
+        socket.emit('trigger_scan', { 
+            age: parseInt(els.ageInput.value) || 25, 
+            sex: currentSex,
+            parallax_factor: parseFloat(parallaxFactor) || 1.0
+        });
+    }
 }
 function resetUI() { socket.emit('reset'); }
 
@@ -261,45 +264,25 @@ document.addEventListener('keydown', (e) => {
 
 socket.on('scan_started', () => {
     isScanning = true;
-    els.btnScan.disabled = true;
-    els.btnScan.querySelector('.btn-text').innerText = "ANALYZING\u2026";
+    els.btnScan.classList.add('scanning-active');
+    els.btnScan.querySelector('.btn-text').innerText = "STOP SCANNING";
     const ico = els.btnScan.querySelector('.btn-icon');
-    ico.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>';
-    ico.classList.add('animate-spin');
-
-    els.statusBadge.className = 'state-scanning';
-    els.statusBadge.className = 'state-scanning';
-    els.statusBadge.style = '';
-    els.statusBadge.querySelector('.status-text').innerText = "Analyzing";
-    els.statusBadge.querySelector('.status-dot').style.background = '';
-
-    if (els.focusBox) {
-        els.focusBox.style.borderColor = 'transparent';
-        els.focusBox.classList.add('scanning');
-    }
-    els.videoFeed.style.opacity = '0.8';
-});
-
-socket.on('scan_result', (data) => {
-    isScanning = false;
-    els.btnScan.disabled = false;
-    els.btnScan.querySelector('.btn-text').innerText = "BEGIN ANALYSIS";
-    const ico = els.btnScan.querySelector('.btn-icon');
-    ico.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/>';
+    ico.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>';
     ico.classList.remove('animate-spin');
 
-    els.statusBadge.className = 'state-complete';
-    els.statusBadge.className = 'state-complete';
-    els.statusBadge.style = '';
-    els.statusBadge.querySelector('.status-text').innerText = "Complete";
-    els.statusBadge.querySelector('.status-dot').style.background = '';
+    els.statusBadge.className = 'state-scanning';
+    els.statusBadge.querySelector('.status-text').innerText = "Live Scanning";
 
     if (els.focusBox) {
-        els.focusBox.classList.remove('scanning');
-        els.focusBox.classList.add('complete');
+        els.focusBox.style.borderColor = 'var(--accent-teal)';
+        els.focusBox.classList.add('scanning');
     }
-    els.videoFeed.style.opacity = '1';
+    els.videoFeed.style.opacity = '0.9';
+});
 
+let lastHistoryTime = 0;
+socket.on('scan_result', (data) => {
+    // Update live display
     animateValue(els.valHeight, parseFloat(els.valHeight.innerText) || 0, data.height_m, 2);
     animateValue(els.valWeight, parseFloat(els.valWeight.innerText) || 0, data.weight_kg, 1);
     animateValue(els.valBmi,    parseFloat(els.valBmi.innerText)    || 0, data.bmi, 1);
@@ -307,21 +290,30 @@ socket.on('scan_result', (data) => {
 
     updateGauge(data.bmi, data.category);
     updateCharts(data);
-    addHistoryRow(data);
 
-    setTimeout(() => {
-        if (!isScanning) {
-            els.statusBadge.className = 'state-ready';
-            els.statusBadge.className = 'state-ready';
-            els.statusBadge.style = '';
-            els.statusBadge.querySelector('.status-text').innerText = "Ready";
-            els.statusBadge.querySelector('.status-dot').style.background = '';
-            if (els.focusBox) {
-                els.focusBox.classList.remove('complete');
-                els.focusBox.style.borderColor = 'rgba(94,234,212,0.2)';
-            }
-        }
-    }, 3000);
+    // Throttle history updates to once every 5 seconds while scanning
+    const now = Date.now();
+    if (now - lastHistoryTime > 5000) {
+        addHistoryRow(data);
+        lastHistoryTime = now;
+    }
+});
+
+socket.on('scan_stopped', () => {
+    isScanning = false;
+    els.btnScan.classList.remove('scanning-active');
+    els.btnScan.querySelector('.btn-text').innerText = "BEGIN ANALYSIS";
+    const ico = els.btnScan.querySelector('.btn-icon');
+    ico.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/>';
+
+    els.statusBadge.className = 'state-ready';
+    els.statusBadge.querySelector('.status-text').innerText = "Ready";
+
+    if (els.focusBox) {
+        els.focusBox.classList.remove('scanning');
+        els.focusBox.style.borderColor = 'rgba(94,234,212,0.2)';
+    }
+    els.videoFeed.style.opacity = '1';
 });
 
 socket.on('scan_error', (data) => {

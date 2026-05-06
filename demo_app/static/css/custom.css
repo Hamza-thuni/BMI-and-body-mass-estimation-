@@ -119,6 +119,15 @@ body {
     background-color: #34d399 !important;
 }
 
+@keyframes pulse-teal {
+    0% { box-shadow: 0 0 0 0 rgba(94, 234, 212, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(94, 234, 212, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(94, 234, 212, 0); }
+}
+.scanning {
+    animation: pulse-teal 2s infinite;
+}
+
 /* ── Corner Brackets & Scan Laser (Removed) ──────── */
 
 /* ── Table Row Animation ─────────────────────────── */
@@ -204,6 +213,13 @@ body {
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
+}
+.btn-primary.scanning-active {
+    background: #f43f5e !important;
+    color: white !important;
+}
+.btn-primary.scanning-active:hover {
+    background: #e11d48 !important;
 }
 
 /* ═══════════════════════════════════════════════════

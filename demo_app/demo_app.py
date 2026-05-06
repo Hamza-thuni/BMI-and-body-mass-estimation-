@@ -13,7 +13,13 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 # Global state for video stream to share with inference thread
 stream_state = {
     'latest_frame': None,
-    'global_scale': None
+    'global_scale': None,
+    'is_scanning': False,
+    'scan_params': {
+        'age': 25,
+        'sex_is_male': True,
+        'parallax_factor': 1.0
+    }
 }
 
 # Initialize the real V9 pipeline
@@ -96,40 +102,60 @@ def test_connect():
 @socketio.on('trigger_scan')
 def handle_trigger_scan(data):
     """
-    Called when the frontend requests a scan.
-    Runs the actual V9 pipeline in a background thread to avoid blocking the server.
+    Called when the frontend requests to start or update scanning.
     """
     age = data.get('age', 25)
     sex_is_male = data.get('sex', 'male') == 'male'
     parallax_factor = data.get('parallax_factor', 1.0)
     
-    print(f"[SocketIO] Scan triggered for Age: {age}, Sex: {'Male' if sex_is_male else 'Female'}, Parallax: {parallax_factor}")
+    stream_state['scan_params'] = {
+        'age': age,
+        'sex_is_male': sex_is_male,
+        'parallax_factor': parallax_factor
+    }
     
-    # Notify frontend that scan has started (e.g. to show 'Scanning...' animation)
-    socketio.emit('scan_started')
-    
-    # Background task to run inference
-    def run_inference():
-        frame = stream_state['latest_frame']
-        
-        if stream_state['global_scale'] is None:
-            socketio.emit('scan_error', {'message': 'ArUco scale not found. Ensure markers are visible.'})
-            return
+    if not stream_state['is_scanning']:
+        stream_state['is_scanning'] = True
+        print(f"[SocketIO] Continuous scanning STARTED for Age: {age}, Sex: {'Male' if sex_is_male else 'Female'}")
+        socketio.emit('scan_started')
+    else:
+        print(f"[SocketIO] Scan parameters UPDATED: Age={age}, Parallax={parallax_factor}")
+
+def background_inference():
+    """Background task that runs inference whenever is_scanning is True."""
+    import time
+    while True:
+        if stream_state['is_scanning']:
+            frame = stream_state['latest_frame']
+            scale = stream_state['global_scale']
+            params = stream_state['scan_params']
             
-        px_per_m = stream_state['global_scale']
-        
-        try:
-            result = pipeline.predict(frame=frame, age=age, sex_is_male=sex_is_male, px_per_m=px_per_m, parallax_factor=parallax_factor)
-            socketio.emit('scan_result', result)
-            print(f"[SocketIO] Scan complete: {result}")
-        except Exception as e:
-            print(f"[SocketIO] Inference error: {e}")
-            socketio.emit('scan_error', {'message': str(e)})
-        
-    socketio.start_background_task(run_inference)
+            if frame is not None and scale is not None:
+                try:
+                    result = pipeline.predict(
+                        frame=frame, 
+                        age=params['age'], 
+                        sex_is_male=params['sex_is_male'], 
+                        px_per_m=scale, 
+                        parallax_factor=params['parallax_factor']
+                    )
+                    socketio.emit('scan_result', result)
+                except Exception as e:
+                    # If it's a real error (like no person), we can notify, 
+                    # but for continuous we might want to just skip or send a status
+                    # socketio.emit('scan_status', {'message': str(e)})
+                    pass
+        socketio.sleep(0.2) # Run at ~5 FPS
+
+@socketio.on('stop_scan')
+def handle_stop_scan():
+    stream_state['is_scanning'] = False
+    print("[SocketIO] Continuous scanning STOPPED")
+    socketio.emit('scan_stopped')
 
 @socketio.on('reset')
 def handle_reset():
+    stream_state['is_scanning'] = False
     print("[SocketIO] UI Reset requested")
     socketio.emit('ui_reset')
 
@@ -140,4 +166,8 @@ if __name__ == '__main__':
     print(f"=== Starting BMI Demo Server ({Config.APP_MODE} mode) ===")
     print(f"Camera Index: {Config.CAMERA_INDEX}")
     Timer(1, open_browser).start()
+    
+    # Start the continuous inference background task
+    socketio.start_background_task(background_inference)
+    
     socketio.run(app, debug=False, use_reloader=False, host='0.0.0.0', port=5000, allow_unsafe_werkzeug=True)
