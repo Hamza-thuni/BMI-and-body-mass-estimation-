@@ -240,11 +240,11 @@ function setSex(sex) {
 
 function triggerScan() {
     if (isScanning) return;
-    const offsetCm = document.getElementById('offset-input').value;
+    const parallaxFactor = document.getElementById('parallax-input').value;
     socket.emit('trigger_scan', { 
         age: parseInt(els.ageInput.value) || 25, 
         sex: currentSex,
-        offset_cm: parseFloat(offsetCm) || 50
+        parallax_factor: parseFloat(parallaxFactor) || 1.0
     });
 }
 function resetUI() { socket.emit('reset'); }

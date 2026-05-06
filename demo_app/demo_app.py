@@ -66,10 +66,10 @@ def gen_frames():
                 
             # Draw overlay
             if stream_state['global_scale'] is not None:
-                focal_length, z_depth = stream_state['global_scale']
-                cv2.putText(frame, f"Wall Distance: {z_depth:.2f} m", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+                px_per_m = stream_state['global_scale']
+                cv2.putText(frame, f"Scale: {px_per_m:.1f} px/m", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
             else:
-                cv2.putText(frame, "Waiting for ArUco...", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                cv2.putText(frame, "Waiting for ArUco (ID 0 & 1)...", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 
             ret, buffer = cv2.imencode('.jpg', frame)
             frame_bytes = buffer.tobytes()
@@ -101,9 +101,9 @@ def handle_trigger_scan(data):
     """
     age = data.get('age', 25)
     sex_is_male = data.get('sex', 'male') == 'male'
-    offset_cm = data.get('offset_cm', 50)
+    parallax_factor = data.get('parallax_factor', 1.0)
     
-    print(f"[SocketIO] Scan triggered for Age: {age}, Sex: {'Male' if sex_is_male else 'Female'}, Offset: {offset_cm}cm")
+    print(f"[SocketIO] Scan triggered for Age: {age}, Sex: {'Male' if sex_is_male else 'Female'}, Parallax: {parallax_factor}")
     
     # Notify frontend that scan has started (e.g. to show 'Scanning...' animation)
     socketio.emit('scan_started')
@@ -116,10 +116,10 @@ def handle_trigger_scan(data):
             socketio.emit('scan_error', {'message': 'ArUco scale not found. Ensure markers are visible.'})
             return
             
-        focal_length, z_depth = stream_state['global_scale']
+        px_per_m = stream_state['global_scale']
         
         try:
-            result = pipeline.predict(frame=frame, age=age, sex_is_male=sex_is_male, z_depth=z_depth, focal_length=focal_length, offset_cm=offset_cm)
+            result = pipeline.predict(frame=frame, age=age, sex_is_male=sex_is_male, px_per_m=px_per_m, parallax_factor=parallax_factor)
             socketio.emit('scan_result', result)
             print(f"[SocketIO] Scan complete: {result}")
         except Exception as e:

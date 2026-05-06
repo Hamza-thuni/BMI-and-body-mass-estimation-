@@ -111,11 +111,11 @@
                             </div>
                         </div>
                         <div style="grid-column: 1 / -1;">
-                            <label for="offset-input" style="display:block; font-size:11px; color:#4b5563; margin-bottom:6px; font-weight:300;">Distance from Wall (cm)</label>
-                            <input type="number" id="offset-input" value="50" min="0" max="200" style="width:100%; padding:10px 14px; font-size:14px; border-radius:12px; background:#111318; border:1px solid rgba(255,255,255,0.06); color:#f1f5f9; outline:none;">
+                            <label for="parallax-input" style="display:block; font-size:11px; color:#4b5563; margin-bottom:6px; font-weight:300;">Calibration Factor (e.g., 1.2)</label>
+                            <input type="number" id="parallax-input" value="1.0" min="0.1" max="3.0" step="0.05" style="width:100%; padding:10px 14px; font-size:14px; border-radius:12px; background:#111318; border:1px solid rgba(255,255,255,0.06); color:#f1f5f9; outline:none;">
                         </div>
                     </div>
-                    <p style="font-size:10px; color:#374151; margin:12px 0 0; font-weight:300;">*Required for accurate Body Fat and Depth compensation.</p>
+                    <p style="font-size:10px; color:#374151; margin:12px 0 0; font-weight:300;">*Tweak this factor to calibrate your height if standing closer than the wall.</p>
                 </div>
                 
                 <!-- Your Analysis Card -->
