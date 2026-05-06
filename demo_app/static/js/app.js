@@ -11,6 +11,39 @@ let currentSex = 'male';
 let scanCount = 0;
 let skeletonAnimFrame = null;
 
+// Chart State
+let compChart = null;
+let trendChart = null;
+let trendLabels = [];
+let historyData = [];
+
+// --- Theme Toggle ---
+let isLightMode = false;
+function toggleTheme() {
+    isLightMode = !isLightMode;
+    if (isLightMode) {
+        document.body.classList.add('light-theme');
+        document.getElementById('theme-icon-sun').style.display = 'none';
+        document.getElementById('theme-icon-moon').style.display = 'block';
+    } else {
+        document.body.classList.remove('light-theme');
+        document.getElementById('theme-icon-sun').style.display = 'block';
+        document.getElementById('theme-icon-moon').style.display = 'none';
+    }
+    
+    // Update Chart.js global defaults
+    const textColor = isLightMode ? '#475569' : '#94a3b8';
+    const gridColor = isLightMode ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.05)';
+    
+    Chart.defaults.color = textColor;
+    Chart.defaults.scale.grid.color = gridColor;
+    
+    if (compChart) compChart.update();
+    if (trendChart) trendChart.update();
+}
+let bmiData = [];
+let weightData = [];
+
 // ── DOM Elements ────────────────────────────────────
 const els = {
     btnMale:      document.getElementById('btn-male'),
@@ -18,7 +51,7 @@ const els = {
     ageInput:     document.getElementById('age-input'),
     btnScan:      document.getElementById('btn-scan'),
     statusBadge:  document.getElementById('status-badge'),
-    focusBox:     document.getElementById('focus-box'),
+    focusBox:     document.getElementById('focus-box'), // May be null
     videoFeed:    document.getElementById('video-feed'),
     historyTbody: document.getElementById('history-tbody'),
     emptyHistory: document.getElementById('empty-history'),
@@ -33,9 +66,7 @@ const els = {
     gaugeBg:      document.getElementById('gauge-bg'),
     gaugeFill:    document.getElementById('gauge-fill'),
     gaugeTicks:   document.getElementById('gauge-ticks'),
-    skeletonBones:  document.getElementById('skeleton-bones'),
-    skeletonJoints: document.getElementById('skeleton-joints'),
-    skeletonBbox:   document.getElementById('skeleton-bbox'),
+    // Skeleton elements removed for simpler UI
 };
 
 
@@ -86,7 +117,7 @@ function initGauge() {
         el.setAttribute('y', ly);
         el.setAttribute('text-anchor', 'middle');
         el.setAttribute('dominant-baseline', 'middle');
-        el.setAttribute('fill', '#4b5563');
+        el.setAttribute('fill', 'var(--text-muted)');
         el.setAttribute('font-size', '8');
         el.textContent = text;
         els.gaugeTicks.appendChild(el);
@@ -99,7 +130,7 @@ function initGauge() {
         tick.setAttribute('y1', cy - t1R * Math.sin(angle));
         tick.setAttribute('x2', cx + t2R * Math.cos(angle));
         tick.setAttribute('y2', cy - t2R * Math.sin(angle));
-        tick.setAttribute('stroke', '#374151');
+        tick.setAttribute('stroke', 'var(--text-muted)');
         tick.setAttribute('stroke-width', '1');
         els.gaugeTicks.appendChild(tick);
     });
@@ -184,78 +215,11 @@ const BASE_POSE = [
 const SK_W = 640, SK_H = 480;
 
 function initSkeleton() {
-    els.skeletonBones.innerHTML = '';
-    els.skeletonJoints.innerHTML = '';
-
-    BONE_PAIRS.forEach((_, i) => {
-        const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        ln.id = `bone-${i}`;
-        ln.classList.add('skeleton-bone');
-        els.skeletonBones.appendChild(ln);
-    });
-
-    BASE_POSE.forEach((_, i) => {
-        const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        c.id = `joint-${i}`;
-        const isMajor = MAJOR_JOINTS.has(i);
-        c.setAttribute('r', isMajor ? '4' : '2.5');
-        c.classList.add(isMajor ? 'skeleton-joint-major' : 'skeleton-joint');
-        if (isMajor) c.setAttribute('filter', 'url(#glow-joint)');
-        els.skeletonJoints.appendChild(c);
-    });
-
-    animateIdleSkeleton();
+    // Skeleton overlay removed for simple UI
 }
 
-function animateIdleSkeleton() {
-    const t0 = performance.now();
-
-    function frame(now) {
-        const t = (now - t0) / 1000;
-        const pose = BASE_POSE.map(([bx, by], i) => {
-            let dx = 0, dy = 0;
-            if (i >= 5 && i <= 10)  dy = Math.sin(t * 1.3) * 0.003;           // breathing
-            if (i >= 11 && i <= 14) dx = Math.sin(t * 0.7 + i * 0.4) * 0.002; // sway
-            if (i === 9 || i === 10) { dx = Math.sin(t * 1.1 + i) * 0.004; dy = Math.cos(t * 0.8 + i) * 0.003; }
-            if (i <= 4) dy = Math.sin(t * 0.6) * 0.002;
-            return [bx + dx, by + dy];
-        });
-        renderSkeleton(pose);
-        skeletonAnimFrame = requestAnimationFrame(frame);
-    }
-    skeletonAnimFrame = requestAnimationFrame(frame);
-}
-
-function renderSkeleton(pose) {
-    BONE_PAIRS.forEach(([a, b], i) => {
-        const ln = document.getElementById(`bone-${i}`);
-        if (!ln) return;
-        ln.setAttribute('x1', (pose[a][0] * SK_W).toFixed(1));
-        ln.setAttribute('y1', (pose[a][1] * SK_H).toFixed(1));
-        ln.setAttribute('x2', (pose[b][0] * SK_W).toFixed(1));
-        ln.setAttribute('y2', (pose[b][1] * SK_H).toFixed(1));
-    });
-    pose.forEach(([x, y], i) => {
-        const c = document.getElementById(`joint-${i}`);
-        if (!c) return;
-        c.setAttribute('cx', (x * SK_W).toFixed(1));
-        c.setAttribute('cy', (y * SK_H).toFixed(1));
-    });
-    // Bounding box
-    const xs = pose.map(p => p[0] * SK_W);
-    const ys = pose.map(p => p[1] * SK_H);
-    const pad = 24;
-    const bx = Math.min(...xs) - pad, by = Math.min(...ys) - pad;
-    els.skeletonBbox.setAttribute('x', bx.toFixed(1));
-    els.skeletonBbox.setAttribute('y', by.toFixed(1));
-    els.skeletonBbox.setAttribute('width', (Math.max(...xs) + pad - bx).toFixed(1));
-    els.skeletonBbox.setAttribute('height', (Math.max(...ys) + pad - by).toFixed(1));
-}
-
-// Accept real landmark data from backend
 function updateSkeletonFromBackend(landmarks) {
-    if (skeletonAnimFrame) { cancelAnimationFrame(skeletonAnimFrame); skeletonAnimFrame = null; }
-    renderSkeleton(landmarks.map(lm => [lm.x, lm.y]));
+    // Skeleton overlay removed
 }
 
 
@@ -299,12 +263,15 @@ socket.on('scan_started', () => {
     ico.classList.add('animate-spin');
 
     els.statusBadge.className = 'state-scanning';
-    Object.assign(els.statusBadge.style, { background:'rgba(94,234,212,0.06)', border:'1px solid rgba(94,234,212,0.25)', color:'#5eead4' });
+    els.statusBadge.className = 'state-scanning';
+    els.statusBadge.style = '';
     els.statusBadge.querySelector('.status-text').innerText = "Analyzing";
-    els.statusBadge.querySelector('.status-dot').style.background = '#5eead4';
+    els.statusBadge.querySelector('.status-dot').style.background = '';
 
-    els.focusBox.style.borderColor = 'transparent';
-    els.focusBox.classList.add('scanning');
+    if (els.focusBox) {
+        els.focusBox.style.borderColor = 'transparent';
+        els.focusBox.classList.add('scanning');
+    }
     els.videoFeed.style.opacity = '0.8';
 });
 
@@ -317,12 +284,15 @@ socket.on('scan_result', (data) => {
     ico.classList.remove('animate-spin');
 
     els.statusBadge.className = 'state-complete';
-    Object.assign(els.statusBadge.style, { background:'rgba(52,211,153,0.06)', border:'1px solid rgba(52,211,153,0.25)', color:'#34d399' });
+    els.statusBadge.className = 'state-complete';
+    els.statusBadge.style = '';
     els.statusBadge.querySelector('.status-text').innerText = "Complete";
-    els.statusBadge.querySelector('.status-dot').style.background = '#34d399';
+    els.statusBadge.querySelector('.status-dot').style.background = '';
 
-    els.focusBox.classList.remove('scanning');
-    els.focusBox.classList.add('complete');
+    if (els.focusBox) {
+        els.focusBox.classList.remove('scanning');
+        els.focusBox.classList.add('complete');
+    }
     els.videoFeed.style.opacity = '1';
 
     animateValue(els.valHeight, parseFloat(els.valHeight.innerText) || 0, data.height_m, 2);
@@ -331,18 +301,44 @@ socket.on('scan_result', (data) => {
     animateValue(els.valBfp,    parseFloat(els.valBfp.innerText)    || 0, data.body_fat_pct, 1);
 
     updateGauge(data.bmi, data.category);
+    updateCharts(data);
     addHistoryRow(data);
 
     setTimeout(() => {
         if (!isScanning) {
             els.statusBadge.className = 'state-ready';
-            Object.assign(els.statusBadge.style, { background:'rgba(19,21,26,0.9)', border:'1px solid rgba(255,255,255,0.08)', color:'#94a3b8' });
+            els.statusBadge.className = 'state-ready';
+            els.statusBadge.style = '';
             els.statusBadge.querySelector('.status-text').innerText = "Ready";
-            els.statusBadge.querySelector('.status-dot').style.background = '#34d399';
-            els.focusBox.classList.remove('complete');
-            els.focusBox.style.borderColor = 'rgba(94,234,212,0.2)';
+            els.statusBadge.querySelector('.status-dot').style.background = '';
+            if (els.focusBox) {
+                els.focusBox.classList.remove('complete');
+                els.focusBox.style.borderColor = 'rgba(94,234,212,0.2)';
+            }
         }
     }, 3000);
+});
+
+socket.on('scan_error', (data) => {
+    isScanning = false;
+    els.btnScan.disabled = false;
+    
+    const ico = els.btnScan.querySelector('.btn-icon');
+    ico.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/>';
+    ico.classList.remove('animate-spin');
+    
+    els.statusBadge.className = 'state-ready';
+    els.statusBadge.style = '';
+    els.statusBadge.querySelector('.status-text').innerText = "Error";
+    els.statusBadge.querySelector('.status-dot').style.background = '#f43f5e';
+    
+    if (els.focusBox) {
+        els.focusBox.classList.remove('scanning', 'complete');
+        els.focusBox.style.borderColor = 'rgba(244,63,94,0.4)';
+    }
+    els.videoFeed.style.opacity = '1';
+
+    alert("Scan Failed: " + data.message);
 });
 
 socket.on('ui_reset', () => {
@@ -351,12 +347,26 @@ socket.on('ui_reset', () => {
     els.valBmi.innerText = '--';
     els.valBfp.innerText = '--';
     resetGauge();
+    
+    if (compChart && trendChart) {
+        compChart.data.datasets[0].data = [0, 100];
+        compChart.update();
+        
+        trendLabels.length = 0;
+        weightData.length = 0;
+        bmiData.length = 0;
+        trendChart.update();
+    }
+
     els.statusBadge.className = 'state-ready';
-    Object.assign(els.statusBadge.style, { background:'rgba(19,21,26,0.9)', border:'1px solid rgba(255,255,255,0.08)', color:'#94a3b8' });
+    els.statusBadge.className = 'state-ready';
+    els.statusBadge.style = '';
     els.statusBadge.querySelector('.status-text').innerText = "Ready";
-    els.statusBadge.querySelector('.status-dot').style.background = '#34d399';
-    els.focusBox.classList.remove('scanning', 'complete');
-    els.focusBox.style.borderColor = 'rgba(94,234,212,0.2)';
+    els.statusBadge.querySelector('.status-dot').style.background = '';
+    if (els.focusBox) {
+        els.focusBox.classList.remove('scanning', 'complete');
+        els.focusBox.style.borderColor = 'rgba(94,234,212,0.2)';
+    }
 });
 
 socket.on('pose_landmarks', (data) => {
@@ -416,6 +426,110 @@ function addHistoryRow(data) {
     if (els.historyTbody.children.length > 10) els.historyTbody.removeChild(els.historyTbody.lastChild);
 }
 
+function updateCharts(data) {
+    if (!compChart || !trendChart) return;
+    
+    // Update Body Composition Donut
+    if (data.fat_mass !== undefined && data.lean_mass !== undefined) {
+        compChart.data.datasets[0].data = [data.fat_mass, data.lean_mass];
+        compChart.update();
+    }
+
+    // Update Trend Line Chart
+    const timeLabel = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+    trendLabels.push(timeLabel);
+    weightData.push(data.weight_kg);
+    bmiData.push(data.bmi);
+
+    // Keep max 10 scans
+    if (trendLabels.length > 10) {
+        trendLabels.shift();
+        weightData.shift();
+        bmiData.shift();
+    }
+    trendChart.update();
+}
+
+function initCharts() {
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.font.family = "'Public Sans', sans-serif";
+
+    // Body Composition Donut Chart
+    const compCtx = document.getElementById('compositionChart').getContext('2d');
+    compChart = new Chart(compCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Fat Mass', 'Lean Mass'],
+            datasets: [{
+                data: [0, 100], // Default empty state
+                backgroundColor: ['#f43f5e', '#5eead4'], // Rose for fat, Teal for lean
+                borderWidth: 0,
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '78%',
+            plugins: {
+                legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } },
+                tooltip: { callbacks: { label: function(context) { return ' ' + context.label + ': ' + context.raw.toFixed(1) + ' kg'; } } }
+            },
+            animation: { animateScale: true, animateRotate: true, duration: 1500, easing: 'easeOutQuart' }
+        }
+    });
+
+    // Trend Line Chart
+    const trendCtx = document.getElementById('trendChart').getContext('2d');
+    trendChart = new Chart(trendCtx, {
+        type: 'line',
+        data: {
+            labels: trendLabels,
+            datasets: [
+                {
+                    label: 'Weight (kg)',
+                    data: weightData,
+                    borderColor: '#38bdf8',
+                    backgroundColor: 'rgba(56,189,248,0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'BMI',
+                    data: bmiData,
+                    borderColor: '#5eead4',
+                    backgroundColor: 'transparent',
+                    borderDash: [5, 5],
+                    tension: 0.4,
+                    yAxisID: 'y1'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } } },
+            scales: {
+                x: { grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false } },
+                y: { 
+                    type: 'linear', display: true, position: 'left',
+                    grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
+                    title: { display: true, text: 'Weight (kg)', color: '#4b5563', font: { size: 10 } }
+                },
+                y1: {
+                    type: 'linear', display: true, position: 'right',
+                    grid: { drawOnChartArea: false },
+                    title: { display: true, text: 'BMI', color: '#4b5563', font: { size: 10 } }
+                }
+            },
+            animation: { duration: 1500, easing: 'easeOutQuart' }
+        }
+    });
+}
+
+
 
 // ═══════════════════════════════════════════════════
 //  INIT
@@ -423,3 +537,4 @@ function addHistoryRow(data) {
 
 initGauge();
 initSkeleton();
+initCharts();

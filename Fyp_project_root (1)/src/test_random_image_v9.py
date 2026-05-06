@@ -105,7 +105,15 @@ def main():
         print("No person detected by MediaPipe. Run script again for new image.")
         return
 
-    phys_feats, coords, seg_mask = extract_physics(frame, res, true_h_m)
+    # Calculate px_per_m using ground truth height (Celeb images have no ArUco markers)
+    landmarks = res.pose_landmarks[0]
+    h_img, w_img = frame.shape[:2]
+    pts = np.array([[lm.x * w_img, lm.y * h_img] for lm in landmarks])
+    pixel_height = pts[:, 1].max() - pts[:, 1].min()
+    px_per_m = pixel_height / true_h_m
+
+    # Unpack all 4 returned values
+    phys_feats, coords, seg_mask, is_cut_off = extract_physics(frame, res, px_per_m)
     if phys_feats is None:
         print("Failed to extract physical features. Run script again for new image.")
         return

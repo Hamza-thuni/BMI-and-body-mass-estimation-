@@ -26,6 +26,29 @@
     --green-neon-glow: rgba(52, 211, 153, 0.5);
 }
 
+/* ── Light Theme Variables ──────────────────────── */
+body.light-theme {
+    --bg-primary: #f8fafc;
+    --bg-card: #ffffff;
+    --bg-card-inner: #f1f5f9;
+    --bg-input: #ffffff;
+    --border-subtle: rgba(0, 0, 0, 0.08);
+    --border-card: rgba(0, 0, 0, 0.06);
+    --border-active: rgba(20, 184, 166, 0.3);
+
+    --accent-teal: #0d9488;
+    --accent-teal-mid: #14b8a6;
+    --accent-teal-dim: rgba(20, 184, 166, 0.12);
+    --accent-teal-glow: rgba(20, 184, 166, 0.06);
+
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
+
+    --green-neon: #10b981;
+    --green-neon-glow: rgba(16, 185, 129, 0.4);
+}
+
 /* ── Base ─────────────────────────────────────────── */
 body {
     background-color: var(--bg-primary) !important;
@@ -41,12 +64,9 @@ body {
     -webkit-backdrop-filter: none;
 }
 
-/* ── Card Glow — very subtle halo ────────────────── */
+/* ── Card Glow — replaced with soft shadow ────────────────── */
 .card-glow {
-    box-shadow:
-        0 0 0 1px rgba(94, 234, 212, 0.04),
-        0 0 40px -10px rgba(94, 234, 212, 0.07),
-        0 8px 32px -8px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
 }
 
 /* ── Stat Value Animations ───────────────────────── */
@@ -81,8 +101,6 @@ body {
 }
 #status-badge.state-ready .status-dot {
     background-color: var(--green-neon) !important;
-    box-shadow: 0 0 6px var(--green-neon-glow), 0 0 16px var(--green-neon-glow);
-    animation: pulse-glow 2.5s ease-in-out infinite;
 }
 #status-badge.state-scanning {
     background-color: rgba(94, 234, 212, 0.06) !important;
@@ -91,7 +109,6 @@ body {
 }
 #status-badge.state-scanning .status-dot {
     background-color: var(--accent-teal) !important;
-    animation: pulse-glow 0.8s ease-in-out infinite;
 }
 #status-badge.state-complete {
     background-color: rgba(52, 211, 153, 0.06) !important;
@@ -100,49 +117,9 @@ body {
 }
 #status-badge.state-complete .status-dot {
     background-color: #34d399 !important;
-    box-shadow: 0 0 6px rgba(52, 211, 153, 0.5);
 }
 
-@keyframes pulse-glow {
-    0%, 100% {
-        opacity: 1;
-        box-shadow: 0 0 4px var(--green-neon-glow), 0 0 10px var(--green-neon-glow);
-    }
-    50% {
-        opacity: 0.55;
-        box-shadow: 0 0 8px var(--green-neon-glow), 0 0 22px var(--green-neon-glow);
-    }
-}
-
-/* ── Corner Brackets ─────────────────────────────── */
-.corner-bracket {
-    transition: all 0.4s ease;
-}
-.scanning .corner-bracket {
-    border-color: var(--accent-teal) !important;
-    box-shadow: 0 0 10px rgba(94, 234, 212, 0.6);
-    animation: corner-pulse 1s infinite alternate;
-}
-.complete .corner-bracket {
-    border-color: #34d399 !important;
-    box-shadow: 0 0 12px rgba(52, 211, 153, 0.4);
-}
-@keyframes corner-pulse {
-    0% { transform: scale(1); opacity: 0.7; }
-    100% { transform: scale(1.05); opacity: 1; }
-}
-
-/* ── Scan Laser ──────────────────────────────────── */
-#scan-laser { top: 10%; }
-.scanning #scan-laser {
-    display: block;
-    animation: scan-sweep 1.5s ease-in-out infinite alternate;
-}
-@keyframes scan-sweep {
-    0%   { top: 10%; opacity: 0.4; }
-    50%  { opacity: 1; }
-    100% { top: 90%; opacity: 0.4; }
-}
+/* ── Corner Brackets & Scan Laser (Removed) ──────── */
 
 /* ── Table Row Animation ─────────────────────────── */
 @keyframes row-insert {
@@ -160,39 +137,10 @@ body {
 .new-row { animation: row-insert 0.7s ease-out forwards; }
 
 /* ═══════════════════════════════════════════════════
-   SKELETON OVERLAY — Subtle, not overpowering
+   SKELETON OVERLAY (Hidden for simple UI)
    ═══════════════════════════════════════════════════ */
 #skeleton-overlay {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 5;
-    opacity: 0.55;
-}
-.skeleton-bone {
-    stroke: rgba(94, 234, 212, 0.5);
-    stroke-width: 1.8;
-    stroke-linecap: round;
-}
-.skeleton-joint {
-    fill: rgba(94, 234, 212, 0.6);
-}
-.skeleton-joint-major {
-    fill: rgba(255, 255, 255, 0.85);
-    animation: joint-pulse 2.5s ease-in-out infinite;
-}
-@keyframes joint-pulse {
-    0%, 100% { opacity: 0.85; }
-    50%      { opacity: 0.5; }
-}
-.skeleton-bbox {
-    fill: none;
-    stroke: rgba(94, 234, 212, 0.2);
-    stroke-width: 1;
-    stroke-dasharray: 5 4;
-    rx: 4;
+    display: none;
 }
 
 /* ═══════════════════════════════════════════════════
@@ -204,7 +152,10 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: center;
+    min-height: 160px;
+    padding-bottom: 24px;
+    margin-bottom: 16px;
 }
 .gauge-wrapper svg {
     display: block;
@@ -212,7 +163,7 @@ body {
 }
 .gauge-center-text {
     text-align: center;
-    margin-top: -4px;
+    margin-top: 10px; /* Moved down slightly */
 }
 .gauge-center-text .gauge-val {
     font-size: 1.5rem;
@@ -233,21 +184,16 @@ body {
    PRIMARY BUTTON
    ═══════════════════════════════════════════════════ */
 .btn-primary {
-    background: linear-gradient(135deg, #14b8a6 0%, var(--accent-teal-mid) 100%);
+    background: var(--accent-teal-mid);
     color: var(--bg-primary);
     font-weight: 600;
     letter-spacing: 0.05em;
     border: none;
-    box-shadow:
-        0 0 24px rgba(94, 234, 212, 0.2),
-        0 4px 14px rgba(0, 0, 0, 0.35);
     transition: all 0.25s ease;
     cursor: pointer;
 }
 .btn-primary:hover {
-    box-shadow:
-        0 0 32px rgba(94, 234, 212, 0.3),
-        0 6px 18px rgba(0, 0, 0, 0.35);
+    background: var(--accent-teal);
     transform: translateY(-1px);
 }
 .btn-primary:active {
