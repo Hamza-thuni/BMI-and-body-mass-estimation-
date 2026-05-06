@@ -323,20 +323,25 @@ def main():
             _, _, tvec0 = cv2.solvePnP(obj_points, c0_corners, cam_mat, dist_coeffs, flags=cv2.SOLVEPNP_IPPE_SQUARE)
             _, _, tvec1 = cv2.solvePnP(obj_points, c1_corners, cam_mat, dist_coeffs, flags=cv2.SOLVEPNP_IPPE_SQUARE)
             
-            # Z is the depth distance from the camera
-            z_depth = (tvec0[2][0] + tvec1[2][0]) / 2.0
+            # Define how far in front of the wall the person is standing
+            DEPTH_OFFSET_M = 0.50
             
-            if z_depth > 0:
-                # px_per_m = focal_length / depth
-                inst_px_per_m = focal_length / z_depth
-                scale_hist.append(inst_px_per_m)
+            # Z is the depth distance from the camera
+            z_wall = (tvec0[2][0] + tvec1[2][0]) / 2.0
+            
+            if z_wall > 0:
+                z_person = z_wall - DEPTH_OFFSET_M
+                if z_person > 0:
+                    # px_per_m = focal_length / depth
+                    inst_px_per_m = focal_length / z_person
+                    scale_hist.append(inst_px_per_m)
             
             if len(scale_hist) > 0:
                 last_px_per_m = float(np.mean(scale_hist))
             
             # Draw scale line
             cv2.line(display, (int(center0[0]), int(center0[1])), (int(center1[0]), int(center1[1])), (255, 0, 255), 2)
-            cv2.putText(display, f"3D Scale Locked: {last_px_per_m:.1f} px/m", (10, h_frame - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 255), 2)
+            cv2.putText(display, f"Wall Depth: {z_wall:.2f}m | Scale: {last_px_per_m:.1f} px/m", (10, h_frame - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 255), 2)
         else:
             if last_px_per_m is None:
                 cv2.putText(display, "Waiting for ArUco Markers (0 & 1)...", (10, h_frame - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)

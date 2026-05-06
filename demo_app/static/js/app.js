@@ -240,7 +240,12 @@ function setSex(sex) {
 
 function triggerScan() {
     if (isScanning) return;
-    socket.emit('trigger_scan', { age: parseInt(els.ageInput.value) || 25, sex: currentSex });
+    const offsetCm = document.getElementById('offset-input').value;
+    socket.emit('trigger_scan', { 
+        age: parseInt(els.ageInput.value) || 25, 
+        sex: currentSex,
+        offset_cm: parseFloat(offsetCm) || 50
+    });
 }
 function resetUI() { socket.emit('reset'); }
 

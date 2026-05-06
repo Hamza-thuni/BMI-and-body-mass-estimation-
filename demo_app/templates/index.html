@@ -110,8 +110,12 @@
                                 <button id="btn-female" onclick="setSex('female')" style="flex:1; padding:10px 0; font-size:13px; cursor:pointer; min-height:44px;">Female</button>
                             </div>
                         </div>
+                        <div style="grid-column: 1 / -1;">
+                            <label for="offset-input" style="display:block; font-size:11px; color:#4b5563; margin-bottom:6px; font-weight:300;">Distance from Wall (cm)</label>
+                            <input type="number" id="offset-input" value="50" min="0" max="200" style="width:100%; padding:10px 14px; font-size:14px; border-radius:12px; background:#111318; border:1px solid rgba(255,255,255,0.06); color:#f1f5f9; outline:none;">
+                        </div>
                     </div>
-                    <p style="font-size:10px; color:#374151; margin:12px 0 0; font-weight:300;">*Required for accurate Deurenberg Body Fat calculation.</p>
+                    <p style="font-size:10px; color:#374151; margin:12px 0 0; font-weight:300;">*Required for accurate Body Fat and Depth compensation.</p>
                 </div>
                 
                 <!-- Your Analysis Card -->

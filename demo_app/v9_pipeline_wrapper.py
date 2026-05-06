@@ -69,15 +69,21 @@ class RealV9Pipeline:
             
             z_depth = (tvec0[2][0] + tvec1[2][0]) / 2.0
             if z_depth > 0:
-                return focal_length / z_depth
+                return (focal_length, z_depth)
         return None
 
-    def predict(self, frame, age, sex_is_male, px_per_m):
-        """Runs the V9 prediction given a frame and current scale."""
+    def predict(self, frame, age, sex_is_male, z_depth, focal_length, offset_cm):
+        """Runs the V9 prediction given a frame and parallax compensation."""
         if frame is None:
             raise ValueError("No frame provided")
-        if px_per_m is None or px_per_m <= 0:
+        if z_depth is None or focal_length is None or z_depth <= 0:
             raise ValueError("Scale is invalid. Ensure ArUco markers are visible in the frame.")
+
+        z_person = z_depth - (offset_cm / 100.0)
+        if z_person <= 0:
+            raise ValueError("Invalid depth offset. Person cannot be behind the camera!")
+            
+        px_per_m = focal_length / z_person
 
         h_frame, w_frame = frame.shape[:2]
         

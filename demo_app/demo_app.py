@@ -60,13 +60,14 @@ def gen_frames():
             stream_state['latest_frame'] = frame.copy()
             
             # Continuously update the ArUco scale
-            scale = pipeline.calculate_scale(frame)
-            if scale is not None:
-                stream_state['global_scale'] = scale
+            scale_data = pipeline.calculate_scale(frame)
+            if scale_data is not None:
+                stream_state['global_scale'] = scale_data
                 
             # Draw overlay
             if stream_state['global_scale'] is not None:
-                cv2.putText(frame, f"Scale Locked: {stream_state['global_scale']:.1f} px/m", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+                focal_length, z_depth = stream_state['global_scale']
+                cv2.putText(frame, f"Wall Distance: {z_depth:.2f} m", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
             else:
                 cv2.putText(frame, "Waiting for ArUco...", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 
@@ -100,8 +101,9 @@ def handle_trigger_scan(data):
     """
     age = data.get('age', 25)
     sex_is_male = data.get('sex', 'male') == 'male'
+    offset_cm = data.get('offset_cm', 50)
     
-    print(f"[SocketIO] Scan triggered for Age: {age}, Sex: {'Male' if sex_is_male else 'Female'}")
+    print(f"[SocketIO] Scan triggered for Age: {age}, Sex: {'Male' if sex_is_male else 'Female'}, Offset: {offset_cm}cm")
     
     # Notify frontend that scan has started (e.g. to show 'Scanning...' animation)
     socketio.emit('scan_started')
@@ -109,10 +111,15 @@ def handle_trigger_scan(data):
     # Background task to run inference
     def run_inference():
         frame = stream_state['latest_frame']
-        scale = stream_state['global_scale']
+        
+        if stream_state['global_scale'] is None:
+            socketio.emit('scan_error', {'message': 'ArUco scale not found. Ensure markers are visible.'})
+            return
+            
+        focal_length, z_depth = stream_state['global_scale']
         
         try:
-            result = pipeline.predict(frame=frame, age=age, sex_is_male=sex_is_male, px_per_m=scale)
+            result = pipeline.predict(frame=frame, age=age, sex_is_male=sex_is_male, z_depth=z_depth, focal_length=focal_length, offset_cm=offset_cm)
             socketio.emit('scan_result', result)
             print(f"[SocketIO] Scan complete: {result}")
         except Exception as e:

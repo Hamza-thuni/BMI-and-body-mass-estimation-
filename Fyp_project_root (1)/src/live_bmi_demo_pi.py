@@ -200,14 +200,41 @@ def main():
         if ids is not None and 0 in ids and 1 in ids:
             idx0 = np.where(ids == 0)[0][0]
             idx1 = np.where(ids == 1)[0][0]
-            c0 = corners[idx0][0].mean(axis=0)
-            c1 = corners[idx1][0].mean(axis=0)
-            pixel_dist = np.linalg.norm(c0 - c1)
-            last_px_per_m = pixel_dist / 1.0  # Markers are 1m apart
+            c0_corners = corners[idx0][0]
+            c1_corners = corners[idx1][0]
+            c0 = c0_corners.mean(axis=0)
+            c1 = c1_corners.mean(axis=0)
+            
+            focal_length = w_frame
+            cam_mat = np.array([
+                [focal_length, 0, w_frame / 2],
+                [0, focal_length, h_frame / 2],
+                [0, 0, 1]
+            ], dtype=np.float32)
+            dist_coeffs = np.zeros((4, 1), dtype=np.float32)
+            MARKER_SIZE_M = 0.05
+            obj_points = np.array([
+                [-MARKER_SIZE_M/2,  MARKER_SIZE_M/2, 0],
+                [ MARKER_SIZE_M/2,  MARKER_SIZE_M/2, 0],
+                [ MARKER_SIZE_M/2, -MARKER_SIZE_M/2, 0],
+                [-MARKER_SIZE_M/2, -MARKER_SIZE_M/2, 0]
+            ], dtype=np.float32)
+            
+            _, _, tvec0 = cv2.solvePnP(obj_points, c0_corners, cam_mat, dist_coeffs, flags=cv2.SOLVEPNP_IPPE_SQUARE)
+            _, _, tvec1 = cv2.solvePnP(obj_points, c1_corners, cam_mat, dist_coeffs, flags=cv2.SOLVEPNP_IPPE_SQUARE)
+            
+            DEPTH_OFFSET_M = 0.50
+            z_wall = (tvec0[2][0] + tvec1[2][0]) / 2.0
+            
+            if z_wall > 0:
+                z_person = z_wall - DEPTH_OFFSET_M
+                if z_person > 0:
+                    last_px_per_m = focal_length / z_person
             
             # Draw scale line
             cv2.line(display, (int(c0[0]), int(c0[1])), (int(c1[0]), int(c1[1])), (255, 0, 255), 2)
-            cv2.putText(display, "Scale Locked", (10, h_frame - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 255), 2)
+            if last_px_per_m is not None:
+                cv2.putText(display, f"Wall Depth: {z_wall:.2f}m | Scale: {last_px_per_m:.1f} px/m", (10, h_frame - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 255), 2)
         else:
             if last_px_per_m is None:
                 cv2.putText(display, "Waiting for ArUco Markers (0 & 1)...", (10, h_frame - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
